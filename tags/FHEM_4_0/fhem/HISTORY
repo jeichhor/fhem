@@ -1,0 +1,83 @@
+- Rudi, Thu Feb  1 13:27:15 MET 2007
+  Created the file HISTORY and the file README.DEV
+
+- Pest, Thu Feb  1 20:45 MET 2007
+  Added description for attribute "model" in commandref.html
+
+- Rudi, Sun Feb 11 18:56:05 MET 2007
+  - showtime added for pgm2 (useful for FS20 piri display)
+  - defattr command added, it makes easier to assign room, type, etc for a group
+    of devices.
+  - em1010.pl added to the contrib directory. It seems that we are able
+    to read out the EM1010PC. Not verified with multiple devices.
+
+- Pest, Thu Feb 11 23:35 MET 2007
+  - Added doc/linux.html (multiple USDB devices, udev links)
+  - Linked fhem.html and commandref.html to linux.html
+
+- Martin Haas, Fri Feb 23 10:18 MET 2007
+  - ARM-Section (NSLU2) added to doc/linux.html
+
+- Pest, Sat Feb 24 18:30 MET 2007
+  - doc/linux.html: Module build re-written.
+
+- Rudi, Sun Mar  4 11:18:10 MET 2007
+  Reorganization. Goal: making attribute adding/deleting more uniform
+  ("at/notify" and other device differences), and making web-configuration
+  possible (i.e. saving the configfile, list of possible devices etc).
+
+  Internal changes:
+  - %logmods,%devmods moved to %modules. Makes things more uniform
+  - %logs merged into %defs
+  - local state info (%readings) changed to global ($defs{$d}{READINGS})
+    -> No need for the listfn function in each module
+    -> User written scripts can more easily analyze device states
+
+  User visible changes:
+  - at/notify "renamed" to "define <name> at/notify", both moved to external
+    modules. Now it is possible
+    - to have a further "at" or "notify" modules
+      (notify & filelog use the same interface)
+    - to have more than one notify for the same event
+    - to delete at commands without strange escapes.
+      The delete syntax changed (no more def/at/ntfy needed)
+    - at/notify can have attributes
+    Drawback: each at and notify must have a name, which is strange first.
+  - logfile/modpath/pidfile/port/verbose "renamed" to "attr global xxx"
+    Dumping and extending these attributes is easier, no special handling
+    required in the web-frontend.
+  - savefile renamed to "attr global statefile"
+  - configfile global attribute added.
+  - save command added, it writes the statefile and then the configfile.
+  - delattr added to delete single attributes
+  - list/xmllist format changed, they contain more information.
+  - "define/set/get/attr name ?" returns a list of possible arguments
+    in the same format. This data is contained in the xmllist.
+  - disable attribute for at/notify/filelog
+  - rename added
+
+- Rudi, Tue Mar 27 20:43:15 MEST 2007
+  fhemweb.pl (webpgm2) changes:
+  - adopted to the new syntax
+  - better commandline support (return <pre> formatted)
+  - FileLog attribute logtype added, and 4 logtypes (== gnuplot files)
+    defined: fs20, fht, ks300_1, ks300_2
+  - links in the commandref.html file added
+  - device dependent attribute and set support
+
+- Pest, Sun Apr 08 17:55:15 MEST 2007
+  em1010.pl:
+  - Make difference between sensors 1..4 and 5..
+  - Checked values for sensor 5 (cur.energy + cur.power) - ok
+  - Checked values for sensor 5 cur.energy is ok, cur.power still off.
+    Correction factor needs to be determined.
+  - setTime: Without argument, now the current time of the PC is used.
+  - setRperKW: Factor of 10 required, 75 U/kWh -> 750.
+
+- Pest, Tue Apr 10 20:31:22 MEST 2007
+  em1010.pl:
+  - Introduced new double-word function (dw)
+  - getDevStatus: energy values kWh/h, kWh/d, total.
+
+- Rudi Sat Apr 14 10:34:36 MEST 2007
+  final documentations, release 4.0. Tagged as FHEM_4_0
