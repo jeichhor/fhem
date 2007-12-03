@@ -1,0 +1,267 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Home of FHEM</title>
+</head>
+
+<body style="background-color: white">
+
+
+<h1>FHEM</h1>
+GPL'd server to access devices like FHZ1000/FHZ1300,EM1010PC,WS300,SCIVT.
+Formerly known as fhz1000.pl
+
+<h2>News (as of =DATE=, Version =VERS=)</h2>
+<ul>
+  <li>feature: added archivedir/archivecmd to the the main logfile
+  <li>feature: 99_Sunrise_EL.pm (does not need any Date modules)
+  <li>bugfix:  seldom xmllist error resulting in corrupt xml (Martin/Peter, 4.9)
+  <li>bugfix:  FHT mode holiday_short added (9.9, Dirk)
+  <li>bugfix:  Modifying a device from its own trigger crashes (Klaus, 10.9)
+  <li>feature: webpgm2 output reformatted
+  <li>feature: webpgm2 displaying multiple plots
+  <li>feature: FHT lime-protection code discovered by Dirk (7.10)
+  <li>feature: softwarebuffer for FHT devices (Dirk 17.10)
+  <li>feature: FHT low temperatur warning and offset (Dirk 17.10)
+  <li>change:  change FHT state into warnings (Dirk 17.10)<br>
+               NOTE: you'll get an undefined type state &amp; undefined type
+               unknown_85 message after upgrade, this will disappear at the
+               second start.</li>
+  <li>feature: Softwarebuffer code simplified (Rudi 22.11)
+  <li>bugfix:  bug #12327 doppeltes my
+  <li>bugfix:  set STATE from trigger
+  <li>bugfix:  readings state vs STATE problem (xmllist/trigger)
+  <li>change:  SUNRISE doc changed (99_SUNRISE.pm -> 99_SUNRISE_EL.pm)
+  <li>feature: support for the M232 ELV device (Boris, 25.11)
+  <li>feature: alternativ Quad-based numbers for the FS20 (Matthias, 24.11)
+  <li>feature: dummy type added (contrib/99_dummy.pm)
+</ul>
+
+</ul>
+
+<h2>Description</h2>
+<ul>
+This program makes the FHZ1000/FHZ1300/WS300 and other USB devices sold by ELV,
+Conrad and others useable with Linux. In fact, there is nothing Linux special
+in it, you should be able to use it on other platforms as long as you can
+access the hardware as a serial device.<br> The program runs as a server, you
+can control it via telnet, command line program or TCP/IP directly, like the
+supplied web frontends do.<br> <br>
+
+Currently implemented features:<br>
+<ul>
+  <li>Via the FHZ module (with access to one or more FHZ1000/FHZ1300 device):
+  <ul>
+    <li>reading and sending FS20 events (on/off/dimming, timer commands)<br>
+    <li>support of FS20 address features function group, local and global master
+    <li>reading and changing FHT80b parameters (temp, actuator, etc).<br>
+        The FHT8b seems to work too. <b>Note:</b> the FHT8 wont work.<br>
+        Internal software buffer to prevent lost commands.<br>
+    </li>
+    <li>reading HMS data (HMS100-T,-TF,-WD,-MG,-TFK and RM100-2)</li>
+    <li>reading KS300 data</li>
+  </ul>
+     <b>Note:</b>The FHZ1350 WLAN is probably not working due to a prorietary
+     encryption. 
+  </li>
+  <li>reading WS300 data, and up to 9 attached devices</li>
+  <li>reading EM1000WZ/EM1000EM data via an attached EM1010PC</li>
+  <li>reading attached SCIVT devices</li>
+  <li>reading attached M232 devices</li>
+  <li>logging events to files (or database), with regexp filters</li>
+  <li>notifying external programs or internal modules when receiving certain
+      events</li>
+  <li>timed commands (e.g. switching a lamp on from sunset till midnight)</li>
+  <li>modular architecture</li>
+  <li>a lot of web frontends, choose your favorite</li>
+<br>
+</ul>
+See <a href="commandref.html">commandref.html</a> for a detailed command
+description and <a href="faq.html">faq.html</a> for the F.A.Q.
+</ul>
+
+<h2>Links:</h2>
+<ul>
+  Homepage:  <a href="http://www.koeniglich.de/fhem/fhem.html">
+  	http://www.koeniglich.de/fhem/fhem.html</a><br>
+  Download:  <a href="http://www.koeniglich.de/fhem/fhem-=VERS=.tar.gz">
+  	http://www.koeniglich.de/fhem/fhem-=VERS=.tar.gz</a><br>
+  FAQ:  <a href="http://www.koeniglich.de/fhem/faq.html">
+  	http://www.koeniglich.de/fhem/faq.html</a><br>
+  Google-Group:  <a href="http://groups.google.com/group/FHZ1000-users-on-unix">
+  	http://groups.google.com/group/FHZ1000-users-on-unix</a><br>
+  Martins Web frontend (webpgm3): <a href="http://www.martin-haas.de/fhz">
+  	http://www.martin-haas.de/fhz</a><br>
+  CVS@berlios: <a href="http://developer.berlios.de/projects/fhem">
+  	http://developer.berlios.de/projects/fhem</a><br>
+  LinViex (home automation frontend):
+        <a href="http://sourceforge.net/projects/linviex">
+
+  	http://sourceforge.net/projects/linviex</a><br><br>
+  Device/OS Specific installation guides:<br>
+  <ul>
+    Linux driver installation:
+          <a href="http://www.koeniglich.de/fhem/linux.html">
+          http://www.koeniglich.de/fhem/linux.html</a><br>
+    Instructions for Nas/Routers (NSLU2):
+          <a href="http://www.martin-haas.de/fhz/nslu2fhz">
+          http://www.martin-haas.de/fhz/nslu2fhz</a><br>
+    Instructions for the Fritz!Box:
+          <a href="fritzbox.html">
+          http://www.koeniglich.de/fhem/fritzbox.html</a><br>
+    Instructions for the Allnet all6250:
+          <a href="http://wiki.dungeon.de/all6250_opennas_mit_fhem">
+          http://wiki.dungeon.de/all6250_opennas_mit_fhem</a><br>
+  </ul>
+
+</ul>
+<h2>Related projects:</h2>
+<ul>
+  <a href="http://fhz4linux.info/">http://fhz4linux.info/</a><br>
+</ul>
+
+<h2>Installation</h2>
+<ul>
+
+<h3>Linux driver</h3>
+  See <a href="http://www.koeniglich.de/fhem/linux.html">
+  	http://www.koeniglich.de/fhem/linux.html</a><br>
+  For kernels older then 2.6.x apply the patch from the doc directory to your
+  kernel, recompile it and reboot or load/reload the ftdi_sio module.
+</ul>
+
+<h3>Perl modules</h3>
+<ul>
+  You need perl with the Device::SerialPort (<a
+  href="http://search.cpan.org/dist/Device-SerialPort/">
+  http://search.cpan.org/dist/Device-SerialPort/</a>)
+  module. All other needed modules were present in my installation.
+  If this module reports <code>Can't call method "opened" on an undefined
+  value...</code> when starting the server, then you either may ignore
+  this message, or replace the mentioned line with:<pre>
+    $self->{HANDLE}->close if (defined($self->{HANDLE}) &&
+    	                       $self->{HANDLE}->opened);</pre>
+</ul>
+
+<h3>Server installation</h3>
+<ul>
+  <li>Copy the file <code>fhem.pl</code> into your path (e.g.
+      <code>/usr/local/bin</code>), and the FHEM directory e.g. to
+      <code>/usr/local/lib</code>. </li>
+  <li>Copy additional modules from the contrib directory
+      (like 99_SUNRISE_EL.pm)</li>
+  <li>Make sure that you can access the serial USB
+      device (e.g. <code>/dev/tts/USB0</code>).</li>
+  <li>Create a configuration file (see the examples directory and 
+      docs/commandref.html), change at least the modpath
+      (<code>/usr/local/lib</code>) and define FHZ FHZ (<code>/dev/tts/USB0</code>)
+      parameters.</li>
+  <li>Start the server with <code>fhem.pl &lt;configfile&gt;</code></li>
+</ul>
+
+<h3>General Notes for Webfrontends:</h3>
+<ul>
+  <li>You don't have to install all of them, one is probably more than
+      enough :-)</li>
+  <li>The web server and the fhem server must be on the same host</li>
+  <li><b>Important:</b> Make sure you add some protection (.htaccess, etc)
+      else everybody will be able to set your devices</li>
+</ul>
+
+<h3>Web frontend 2 (webfrontend/pgm2)</h3>
+  <ul>
+  This frontend is CGI/CSS based. It has support for rooms, and FHT/KS300 logs.<br>
+  Screenshots: <a href="pgm2-1.png">one</a>, <a href="pgm2-2.png">two</a>.
+  <br><br>
+
+  <ul>
+     <li>Copy the file fhemweb.pl and *.gplot to your cgi-bin directory
+         (/home/httpd/cgi-bin), the icons (*.gif) to your httpd icons
+         (/home/httpd/icons), and commandref.html to the html directory
+         (/home/httpd/html).<br>
+	 Note: The program looks for icons in the following order:
+	 &lt;device-name&gt;.&lt;state&gt;, &lt;device-name&gt;,
+	 &lt;device-type&gt;.&lt;state&gt;, &lt;device-type&gt;<br>
+	 </li>
+     <li>If you want to have access to plotted logs, then make sure that
+         gnuplot is installed and set the logtype for the FileLog device
+         (see commandref.html and example/04_log). Copy the file
+         contrib/99_weblink.pm to the installed FHEM directory.
+	 </li>
+     <li>Call &lt;your-site&gt;/cgi-bin/fhemweb.pl
+  </ul>
+  For special features like assigning devices to rooms see the README file.
+  </ul>
+
+<h3>Web frontend 3 (webfrontend/pgm3)</h3>
+  <ul>
+  This frontend is PHP based and was contributed by Martin Haas.
+  Look at the webfrontends/pgm3/docs for more documentation or at 
+  <a href="pgm3-0.5.1.png">this screenshot</a>. A lot more details can be
+  found on Martins page: <a href="http://www.martin-haas.de/fhz">
+  http://www.martin-haas.de/fhz</a>
+  <br><br>
+
+  <ul>
+     <li>Install PHP and enable it by commenting in the "LoadModule
+     phpX_module ..." directive in httpd.conf (perhaps it is already
+     done by your distro). Restart/reload httpd.</li>
+
+     <li>Create a directory (e.g.: /home/httpd/html/pgm3) and copy all the
+     files from the webfrontend/pgm3 to this directory.<br>Make sure that this
+     directory is writeable by the webserver!</li>
+
+     <li>Edit index.php (/home/httpd/html/pgm3/index.php), and check the
+     required settings section</li>
+
+     <li>If you want to have access to the FHT temperature logs, then:
+     <ul>
+       <li>Make sure gnuplot is installed</li>
+       <li>check the showgnuplot section in index.php</li>
+       <li>For each FHT device copy the file docs/gnuplot/gnuplot.wz to
+	   gnuplot.fhtdevicename (to the /home/httpd/html/pgm3 directory) and
+	   replace fht.log in this file with the absolute name of the current
+	   logfile.</li>
+     </ul>
+     <li>Call &lt;your-site&gt;/pgm3/index.php</li>
+  </ul>
+  </ul>
+
+<h3>Web frontend 4 (webfrontend/pgm4, the template)</h3>
+  <ul>
+  This frontend is PHP based and was contributed by Stefan Mayer. It won't work
+  for you without modification, it is meant as a template or as an example. See
+  the <a href="pgm4.gif">screenshot</a>. To install:
+  <ul>
+    <li>Copy the directory webfrontend/pgm4 to your html directory.</li>
+    <li>Install/enable PHP (see the description for frontend3)</li>
+    <li>Call the program with http://webserver/pgm4/fs20.php</li>
+  </ul>
+  Now you can go on, and modify it to suit your needs :-)
+  </ul>
+
+</ul>
+
+<h2>License:</h2>
+<ul>
+  Copyright:<br>
+  <ul>
+    <li>Rudolf Koenig (r dot koenig at koeniglich dot de)</li>
+    <li>Raoul Matthiessen (webfrontends/pgm1)</li>
+    <li>Martin Haas (webfrontends/pgm3)</li>
+  </ul>
+  License:   GPL (v2)
+</ul>
+
+</ul>
+
+<h2>Misc:</h2>
+<ul>
+  Thanks for Tosti for inspiration and numerous other people for help. <br>
+</ul>
+
+</body>
+
+</html>
