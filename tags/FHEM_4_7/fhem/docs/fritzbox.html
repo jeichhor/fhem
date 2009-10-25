@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>FHEM on the Fritz!Box</title>
+</head>
+
+<body style="background-color: white">
+
+
+<h1><a href="fhem.html">FHEM</a> on the Fritz!Box</h1>
+
+(as of 2009-10-19)
+
+<h3>Description for the Fritzbox 7170 from Achim</h3>
+<ul>
+    <li>Flash Fritzbox with the Freetz firmware
+      <a href="fb7170/7170_04.70freetz-1.1.de_20091005-165006.image">
+      7170_04.70freetz-1.1.de_20091005-165006.image</a> (8MB) using the
+      Fritzbox web-frontend.<br><br>
+
+    <li>Copy tgz packages <a href="fb7170/apache-1.3.41.tgz">apache</a> (1MB),
+      <a href="fb7170/fhem-4.6.tgz">fhem</a> (1MB) and 
+      <a href="fb7170/perl-5.6.2.tgz">perl</a> (10MB) to the USB stick
+      and attach it to the box.<br><br>
+
+    <li>Restart the box and connect to the box using telnet, e.g. with<pre>
+        telnet 192.168.178.1</pre>
+
+    <li>Untar the packages into a new directory on the USB stick, e.g.<pre>
+      cd /var/media/ftp/uStor01/
+      mkdir fritzext
+      cd fritzext
+      tar -xvzf ../fhem-4.6.tgz
+      tar -xvzf ../perl-5.6.2.tgz
+      tar -xvzf ../apache-1.3.41.tgz</pre>
+      For the following ascii file modifications the editor nano can be used
+      which is contained in the Freetz firmware.<br><br>
+
+    <li>Adapt /var/flash/debug.cfg, and change the path to fhem:<pre>
+      /var/flash # more debug.cfg
+      export dTSB=1212687845
+      /bin/sleep 120
+      cd /var/media/ftp/uStor01/fritzext/fhem-4.5 && ./rc.fhem</pre>
+
+    <li>Adapt fhem/rc.fhem, and change the path to perl, fhem, apache:<pre>
+      #!/bin/sh
+      # "RC" script for a fhem running on the Fritz!Box from
+      # an attached usb-stick.
+
+      cd /var
+      ln -s /var/media/ftp/uStor01/fritzext/perl .
+      ln -s /var/media/ftp/uStor01/fritzext/apache-1.3.41 .
+      ln -s /var/media/ftp/uStor01/fritzext/fhem  .
+
+      export LD_LIBRARY_PATH=/var/perl/lib
+      export PATH=/var/perl/bin:$PATH
+      export PERL5LIB=/var/perl/lib/:/var/perl/perl5/:/var/perl/lib/perl5/5.6.2/
+
+      mount -o remount,rw /var/media/ftp/uStor01
+
+      swapon /var/perl/swapfile
+
+      # For CUL:
+      insmod /lib/modules/2.6.13.1-ohio/kernel/drivers/usb/serial/usbserial.ko
+      vendor=0x03eb product=0x204b
+
+      # For FHZ:
+      insmod /lib/modules/2.6.13.1-ohio/kernel/drivers/usb/serial/ftdi_sio.ko
+
+      cd /var/media/ftp/uStor01/fritzext/fhem
+      perl fhem.pl fhem.cfg
+      cd /var/
+      apache-1.3.41/apache apache-1.3.41/conf/apache.conf</pre>
+
+    <li>Adapt your fhem.cfg.  CUL can be used on /dev/ttyUSB0.<br><br>
+    <li>Restart the box
+</ul>
+
+<h3>Description for the Fritzbox 7270 from Volker</h3>
+<ul>
+  <li>Unpack <a href="fb7270/fhem45-on-fritzbox.tgz">fhem45-on-fritzbox.tgz</a>
+    to the USB-Stick.<br><br>
+  <li>Attach the USB storage (stick) to the Fritz!Box. The Fritz!Box should
+    recognize it. Now we have to modify usr/fhem/rc.fhem.<br><br>
+  <li>Login (via telnet) to the Fritz!Box with the WEB-Password<pre>
+    telnet fritz.box</pre>
+  <li>Change to the folder /var/media/ftp/*partition*/usr/fhem <br><br>
+  <li>Edit rc-cp.fhem with nvi<br>
+    (i starts editing, ESC leaves edit mode, X deletes a character, :q! quits
+    nvi without change, ; :wq saves and quits nvi)<br>
+    and adapt the mount point. This is often MassStorageDevice-Partition-0-1.
+    This script will generate some links, makes a copy of .../usr/fhem to
+    /var/usr/ and starts "perl fhem-celica.pl fhem.volker.conf" in the
+    background.<br><br>
+  <li>Run ./rc-cp.fhem in the directory usr/fhem<br>
+    <b>Note:</b>After rebooting the Fritz!Box you will have run this script
+    again.<br><br>
+
+</ul>
+
+<h3>Links</h3>
+<ul>
+  <li>
+    My own, outdated description: <a href="fritzbox_old.html">fritzbox_old.html
+    </a>
+</ul>
+My 
+</body>
+
+</html>
