@@ -343,7 +343,7 @@ FW_ServeSpecial($$$) {
   my ($file,$ext,$dir)= @_;
   $file =~ s,\.\./,,g; # little bit of security
 
-  Debug "We serve $dir/$file.$ext";
+  #Debug "We serve $dir/$file.$ext";
   open(FH, "$dir/$file.$ext") || return 0;
   binmode(FH) if($ext =~ m/gif|png|jpg/); # necessary for Windows
   FW_pO join("", <FH>);
@@ -395,8 +395,8 @@ FW_SetDirs() {
     $FW_gplotdir = $FW_dir;
   }
   # javascript dir
-  if(-d "$FW_dir/pgm2/javascript") {
-    $FW_jsdir = "$FW_dir/pgm2/javascript";
+  if(-d "$FW_dir/pgm2") {
+    $FW_jsdir = "$FW_dir/pgm2";
   } else {
     $FW_jsdir = $FW_dir;
   }
@@ -437,10 +437,10 @@ FW_AnswerCall($)
   if($arg =~ m,^$FW_ME/docs/(.*)\.(html|txt|pdf)$,) {
     return FW_ServeSpecial($1,$2,$FW_docdir);
 
-  } elsif($arg =~ m,^${FW_ME}/(.*)\.css$,) {
+  } elsif($arg =~ m,^${FW_ME}/css/(.*)\.css$,) {
     return FW_ServeSpecial($1,"css",$FW_cssdir);
 
-  } elsif($arg =~ m,^${FW_ME}/(.*)\.js$,) {
+  } elsif($arg =~ m,^${FW_ME}/js/(.*)\.js$,) {
     return FW_ServeSpecial($1,"js",$FW_jsdir);
 
   } elsif($arg =~ m,^/(favicon.ico)$,) {
@@ -451,7 +451,7 @@ FW_AnswerCall($)
     my ($icon,$cachable) = ($1, 1);
     FW_ReadIcons();
 
-    Debug "You want $icon which is " . $FW_icons{$icon};
+    #Debug "You want $icon which is " . $FW_icons{$icon};
     # if we do not have the icon, we convert the device state to the icon name
     if(!$FW_icons{$icon}) {
       $icon = FW_dev2image($icon);
@@ -585,10 +585,10 @@ FW_AnswerCall($)
   
   $prf = "smallscreen" if(!$prf && $FW_ss);
   $prf = "touchpad"    if(!$prf && $FW_tp);
-  FW_pO "<link href=\"$FW_ME/".$prf."style.css\" rel=\"stylesheet\"/>";
-  FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/svg.js\"></script>"
+  FW_pO "<link href=\"$FW_ME/css/".$prf."style.css\" rel=\"stylesheet\"/>";
+  FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/css/svg.js\"></script>"
                         if($FW_plotmode eq "SVG");
-  FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/fhemweb.js\"></script>";
+  FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/js/fhemweb.js\"></script>";
   my $onload = $FW_longpoll ? "onload=\"FW_delayedStart()\"" : "";
   FW_pO "</head>\n<body name=\"$t\" $onload>";
 
@@ -1313,7 +1313,7 @@ FW_showLog($)
 
   my $pm = AttrVal($wl,"plotmode",$FW_plotmode);
 
-  my $gplot_pgm = "$FW_dir/$type.gplot";
+  my $gplot_pgm = "$FW_gplotdir/$type.gplot";
 
   if(!-r $gplot_pgm) {
     my $msg = "Cannot read $gplot_pgm";
@@ -1420,7 +1420,7 @@ FW_showLog($)
     }
     $ret = FW_fC("get $d $file INT $f $t " . join(" ", @{$flog}));
     ($cfg, $plot) = FW_substcfg(1, $wl, $cfg, $plot, $file, "<OuT>");
-    FW_pO SVG_render($wl, $f, $t, $cfg, $internal_data, $plot, $FW_wname, $FW_dir);
+    FW_pO SVG_render($wl, $f, $t, $cfg, $internal_data, $plot, $FW_wname, $FW_cssdir);
     $FW_RETTYPE = "image/svg+xml";
 
   }
@@ -1788,7 +1788,7 @@ FW_style($$)
     FW_pO "</table></div>";
 
   } elsif($a[1] eq "eventMonitor") {
-    FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/console.js\"></script>";
+    FW_pO "<script type=\"text/javascript\" src=\"$FW_ME/js/console.js\"></script>";
     FW_pO "<div id=\"content\">";
     FW_pO "<div id=\"console\">";
     FW_pO "Events:<br>\n";
