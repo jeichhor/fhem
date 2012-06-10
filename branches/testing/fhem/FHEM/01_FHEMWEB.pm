@@ -368,8 +368,8 @@ FW_SetDirs() {
     $FW_dir = AttrVal($FW_wname, "fwmodpath", "$attr{global}{modpath}/FHEM");
   }
   # icon dir
-  if(-d "$FW_dir/icons") {
-    $FW_icondir = "$FW_dir/icons";
+  if(-d "$FW_dir/images") {
+    $FW_icondir = "$FW_dir/images";
   } else {
     $FW_icondir = $FW_dir;
   }
@@ -383,8 +383,8 @@ FW_SetDirs() {
     $FW_docdir = $FW_dir;
   }
   # css dir
-  if(-d "$FW_dir/css") {
-    $FW_cssdir = "$FW_dir/css";
+  if(-d "$FW_dir/pgm2") {
+    $FW_cssdir = "$FW_dir/pgm2";
   } else {
     $FW_cssdir = $FW_dir;
   }
@@ -395,18 +395,18 @@ FW_SetDirs() {
     $FW_gplotdir = $FW_dir;
   }
   # javascript dir
-  if(-d "$FW_dir/javascript") {
-    $FW_jsdir = "$FW_dir/javascript";
+  if(-d "$FW_dir/pgm2/javascript") {
+    $FW_jsdir = "$FW_dir/pgm2/javascript";
   } else {
     $FW_jsdir = $FW_dir;
   }
 
-  Debug "web server root: $FW_dir";
-  Debug "icon directory: $FW_icondir";
-  Debug "doc directory: $FW_docdir";
-  Debug "css directory: $FW_cssdir";
-  Debug "gplot directory: $FW_gplotdir";
-  Debug "javascript directory: $FW_jsdir";
+#   Debug "web server root: $FW_dir";
+#   Debug "icon directory: $FW_icondir";
+#   Debug "doc directory: $FW_docdir";
+#   Debug "css directory: $FW_cssdir";
+#   Debug "gplot directory: $FW_gplotdir";
+#   Debug "javascript directory: $FW_jsdir";
   
 }
 
@@ -424,7 +424,7 @@ FW_AnswerCall($)
   FW_SetDirs;
 
   $FW_commandref = "$FW_docdir/commandref.html";
-  Debug "commandref.html is at $FW_commandref";
+  #Debug "commandref.html is at $FW_commandref";
   
 
   
@@ -460,7 +460,7 @@ FW_AnswerCall($)
     $FW_icons{$icon} =~ m/(.*)\.(gif|jpg|png)/;
     my ($file,$ext)= ($1,$2);
     
-    if(FW_ServeSpecial($file,$ext,"")) {
+    if(FW_ServeSpecial($file,$ext,$FW_icondir)) {
       return $cachable;
     } else {
       return 0;
@@ -911,7 +911,7 @@ FW_roomOverview($)
   my @list = (
      "Everything",    "$FW_ME?room=all",
      "",              "",
-     "Howto",         "$FW_ME/HOWTO.html",
+     "Howto",         "$FW_ME/docs/HOWTO.html",
      "Wiki",          "http://fhemwiki.de",
      "Details",       "$FW_ME/docs/commandref.html",
      "Definition...", "$FW_ME?cmd=style%20addDef",
@@ -1141,6 +1141,25 @@ FW_fileList($)
   }
   closedir(DH);
   return sort @ret;
+}
+
+# return a hash name -> path of actual files for a given regexp
+sub
+FW_fileHash($)
+{
+  my ($fname) = @_;
+  $fname =~ m,^(.*)/([^/]*)$,; # Split into dir and file
+  my ($dir,$re) = ($1, $2);
+  return if(!$re);
+  $re =~ s/%./[A-Za-z0-9]*/g;
+  my %ret;
+  return %ret if(!opendir(DH, $dir));
+  while(my $f = readdir(DH)) {
+    next if($f !~ m,^$re$,);
+    $ret{$f}= "${dir}/${f}";
+  }
+  closedir(DH);
+  return %ret;
 }
 
 ######################
@@ -1609,6 +1628,26 @@ FW_calcWeblink($$)
 }
 
 ##################
+#
+sub
+FW_pFileHash($%) {
+
+    my ($heading,%files)= @_;
+    FW_pO "$heading<br>";
+    FW_pO "<table class=\"block\" id=\"at\">";
+    my $row = 0;
+    my @filenames= sort keys %files;
+    foreach my $filename (@filenames) {
+      FW_pO "<tr class=\"" . ($row?"odd":"even") . "\">";
+      FW_pH "cmd=style edit $files{$filename}", $filename, 1;
+      FW_pO "</tr>";
+      $row = ($row+1)%2;
+    }
+    FW_pO "</table>";
+    FW_pO "<br>";
+ } 
+
+##################
 # List/Edit/Save css and gnuplot files
 sub
 FW_style($$)
@@ -1618,36 +1657,35 @@ FW_style($$)
 
   my $start = "<div id=\"content\"><table><tr><td>";
   my $end   = "</td></tr></table></div>";
+  
   if($a[1] eq "list") {
 
-    my @fl = ("fhem.cfg");
-    push(@fl, "");
-    #push(@fl, FW_fileList("$FW_dir/.*(sh|Util.*|cfg|holiday)"));
-    push(@fl, FW_fileList("$MW_dir/.*(sh|Util.*|cfg|holiday)"));
-    push(@fl, "");
-    push(@fl, FW_fileList("$FW_dir/.*.(css|svg)"));
-    push(@fl, "");
-    push(@fl, FW_fileList("$FW_dir/.*.gplot"));
+    #
+    # list files for editing
+    #
+    my %files;
 
     FW_pO $start;
     FW_pO "$msg<br><br>" if($msg);
-    FW_pO "<table class=\"block\" id=\"at\">";
-    my $row = 0;
-    foreach my $file (@fl) {
-      FW_pO "<tr class=\"" . ($row?"odd":"even") . "\">";
-      if($file eq "") {
-        FW_pO "<td><br></td>";
-      } else {
-        FW_pH "cmd=style edit $file", $file, 1;
-      }
-      FW_pO "</tr>";
-      $row = ($row+1)%2;
-    }
-    FW_pO "</table>$end";
+
+    %files= ("global configuration" => $attr{global}{configfile} );
+    FW_pFileHash("configuration", %files);
+
+    %files= FW_fileHash("$MW_dir/.*(sh|Util.*|cfg|holiday)");
+    FW_pFileHash("modules and other files", %files);
+
+    %files= FW_fileHash("$FW_cssdir/.*.(css|svg)");
+    FW_pFileHash("styles", %files);
+
+    %files= FW_fileHash("$FW_gplotdir/.*.gplot");
+    FW_pFileHash("gplot files", %files);
+
+    FW_pO $end;
+
 
   } elsif($a[1] eq "select") {
 
-    my @fl = FW_fileList("$FW_dir/.*style.css");
+    my @fl = FW_fileList("$FW_cssdir/.*style.css");
 
     FW_pO "$start<table class=\"block\" id=\"at\">";
     my $row = 0;
@@ -1672,17 +1710,21 @@ FW_style($$)
 
   } elsif($a[1] eq "edit") {
 
-    $a[2] =~ s,/,,g;    # little bit of security
+    #
+    # edit a file
+    #
+    #$a[2] =~ s,/,,g;    # little bit of security
     #my $f = ($a[2] eq "fhem.cfg" ? $attr{global}{configfile} :
     #                               "$FW_dir/$a[2]");
-    my $f;
-    if($a[2] eq "fhem.cfg") {
-      $f = $attr{global}{configfile};
-    } elsif ($a[2] =~ m/.*(sh|Util.*|cfg|holiday)/ && $a[2] ne "fhem.cfg") {
-      $f = "$MW_dir/$a[2]";
-    } else {
-      $f = "$FW_dir/$a[2]";
-    }
+#     my $f;
+#     if($a[2] eq "fhem.cfg") {
+#       $f = $attr{global}{configfile};
+#     } elsif ($a[2] =~ m/.*(sh|Util.*|cfg|holiday)/ && $a[2] ne "fhem.cfg") {
+#       $f = "$MW_dir/$a[2]";
+#     } else {
+#       $f = "$FW_dir/$a[2]";
+#     }
+    my $f= $a[2];
     if(!open(FH, $f)) {
       FW_pO "$f: $!";
       return;
@@ -1738,9 +1780,9 @@ FW_style($$)
     FW_pO "<div id=\"content\"><table class=\"iconFor\">";
     foreach my $i (sort grep {/^ico/} keys %FW_icons) {
       FW_pO "<tr><td>";
-      FW_pO "<a href=\"$FW_ME?cmd=attr $a[2] icon $FW_icons{$i}\">$i</a>";
+      FW_pO "<a href=\"$FW_ME?cmd=attr $a[2] icon $i\">$i</a>";
       FW_pO "</td><td>";
-      FW_pO "<img src=\"$FW_ME/icons/$FW_icons{$i}\">";
+      FW_pO "<img src=\"$FW_ME/icons/$i\">";
       FW_pO "</td></tr>";
     }
     FW_pO "</table></div>";
@@ -1983,33 +2025,36 @@ FW_Attr(@)
 sub
 FW_ReadIconsFrom($$) {
   # recursively reads .gif .jpg .png files and returns filenames as array
-  # recursion starts at $dir
-  # filenames are relative to $dir
+  # recursion starts at $FW_icondir/$dir
+  # filenames are relative to $FW_icondir
 
   my ($prepend,$dir)= @_;
 
-  Debug "read icons from $dir, prepend $prepend";
+  #Debug "read icons from \"$dir\", prepend \"$prepend\"";
   
   my (@entries, @filenames);
-  if(opendir(DH, $dir)) {
+  if(opendir(DH, "${FW_icondir}/${dir}")) {
     @entries= sort readdir(DH); # assures order: .gif  .jpg  .png
     closedir(DH);
   }
+  #Debug "$#entries entries found.";
   foreach my $entry (@entries) {
-    #Debug " entry: $entry";
-    my $filenameabs= "$dir/$entry";
-    my $filenamerel= "${prepend}${entry}";
-    if( -d $filenameabs ) {
+    my $filename= "$dir/$entry";
+    my $iconname= "${prepend}${entry}";
+    #Debug " entry: \"$entry\", filename= \"$filename\", iconname= \"$iconname\"";
+    if( -d "${FW_icondir}/${filename}" ) {
       # entry is a directory
-      FW_ReadIconsFrom("${filenamerel}/", $filenameabs) unless($entry eq "." || $entry eq "..");
-    } elsif( -f $filenameabs) {
+      FW_ReadIconsFrom("${iconname}/", $filename) unless($entry eq "." || $entry eq "..");
+    } elsif( -f "${FW_icondir}/${filename}") {
       # entry is a regular file
       if($entry =~ m/\.(png|gif|jpg)$/i) {
         # extension is .gif  .jpg  .png
-        my $basename= $entry;
-        $basename =~ s/\.[^.]+$//; # cut extension
+        #my $basename= $entry;
+        #$basename =~ s/\.[^.]+$//; # cut extension
         # priority due to sort: .png (highest) to .gif (lowest)
-        $FW_icons{"${prepend}${basename}"}= $filenameabs;
+        #$FW_icons{"${prepend}${basename}"}= $filenamerel;
+        # store icon with extension
+        $FW_icons{"${prepend}${entry}"}= $filename;
       }
     }
   }
@@ -2023,21 +2068,21 @@ FW_ReadIcons()
 
   %FW_icons = ();
   # read icons from default directory
-  FW_ReadIconsFrom("", "$FW_icondir/default");
+  FW_ReadIconsFrom("", "default");
   # read icons from stylesheet specific directory, icons found here supersede default icons with same name
   my $prefix= AttrVal($FW_wname, "stylesheetPrefix", "");
-  FW_ReadIconsFrom("", "$FW_icondir/$prefix") unless($prefix eq "");
+  FW_ReadIconsFrom("", "$prefix") unless($prefix eq "");
   # read icons from explicit directory, icons found here supersede all other icons with same name
   my $iconpath= AttrVal($FW_wname, "iconpath", "");
-  FW_ReadIconsFrom("", "$FW_icondir/$iconpath") unless($iconpath eq "");
+  FW_ReadIconsFrom("", "$iconpath") unless($iconpath eq "");
   # if now icons were found so far, read icons from icondir itself
-  FW_ReadIconsFrom("", "$FW_icondir") unless(%FW_icons);
+  FW_ReadIconsFrom("", "") unless(%FW_icons);
 
   $FW_iconsread = $now;
 
-  foreach my $k (keys %FW_icons) {
-   Debug " icon: $k    =>   " . $FW_icons{$k};
-  }
+  #foreach my $k (keys %FW_icons) {
+  #  Debug " icon: $k    =>   " . $FW_icons{$k};
+  #}
   
 }
 

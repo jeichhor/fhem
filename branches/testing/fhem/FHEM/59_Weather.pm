@@ -299,22 +299,75 @@ sub Weather_Undef($$) {
 
 
 sub
-WeatherIconURL() {
+WeatherIconIMGTag($$$) {
 
   use constant GOOGLEURL => "http://www.google.de";
+  use constant SIZE => "50%";
 
-  my ($icon,$path)= @_;
-  return GOOGLEURL . $icon unless(defined($path));
+  my ($icon,$uselocal,$isday)= @_;
 
-  # strip off path and extension
-  $icon =~ s,$/ig/images/weather(.*)\.gif^,$1,;
-
-  # day and night icons
-  my $dayicon= "${icon}.png";
-  my $nighticon= "${icon}_night.png";
+  my $url;
+  my $style;
   
+  if($uselocal) {
+    # strip off path and extension
+    $icon =~ s,^/ig/images/weather/(.*)\.gif$,$1,;
+
+    if($isday) {
+      $icon= "weather/${icon}.png"
+    } else {
+      $icon= "weather/${icon}_night.png"
+    }
+
+    $url= "fhem/icons/$icon";
+    $style= " height=".SIZE." width=".SIZE;
+  } else {
+    $icon= GOOGLEURL . $icon unless($uselocal);
+  }
+
+  return "<img src=\"$url\"$style>";
 
 }
+
+#####################################
+# This has to be modularized in the future.
+sub
+WeatherAsHtml($)
+{
+  my $uselocal= 1;
+
+  my ($d) = @_;
+  $d = "<none>" if(!$d);
+  return "$d is not a Weather instance<br>"
+        if(!$defs{$d} || $defs{$d}{TYPE} ne "Weather");
+
+  my $isday;
+  if(exists &isday) {
+                $isday = isday();
+        } else {
+                $isday = 1; #($hour>6 && $hour<19);
+  }
+        
+  my $ret = "<table>";
+  $ret .= sprintf('<tr><td>%s</td><td>%s<br>temp %s, hum %s, %s</td></tr>',
+        WeatherIconIMGTag(ReadingsVal($d, "icon", ""),$uselocal,$isday),
+        ReadingsVal($d, "condition", ""),
+        ReadingsVal($d, "temp_c", ""), ReadingsVal($d, "humidity", ""),
+        ReadingsVal($d, "wind_condition", ""));
+
+  for(my $i=1; $i<=4; $i++) {
+    $ret .= sprintf('<tr><td>%s</td><td>%s: %s<br>min %s max %s</td></tr>',
+        WeatherIconIMGTag(ReadingsVal($d, "fc${i}_icon", ""),$uselocal,$isday),
+        ReadingsVal($d, "fc${i}_day_of_week", ""),
+        ReadingsVal($d, "fc${i}_condition", ""),
+        ReadingsVal($d, "fc${i}_low_c", ""), ReadingsVal($d, "fc${i}_high_c", ""));
+  }
+
+  $ret .= "</table>";
+  return $ret;
+}
+
+#####################################
 
 
 # sub
@@ -324,11 +377,11 @@ WeatherIconURL() {
 #   $d = "<none>" if(!$d);
 #   return "$d is not a Weather instance<br>"
 #         if(!$defs{$d} || $defs{$d}{TYPE} ne "Weather");
-# 
+#
 #   my $ret = "<table class='weather'>";
 #   $ret .= sprintf('<tr><td colspan=2 class="weather_cityname">%s</td></tr>'."\n",
 #         ReadingsVal($d, "city", ""));
-# 
+#
 #   my $icon = ReadingsVal($d, "icon", "na.png");
 #   $icon =~ s,/ig/images/weather(.*)\.gif,$1\.png, if ($imgHome =~ m/fhem/i);
 #   ### check if _night-icon should be used. If sunrise is installed, use isday(), otherweise night from 7pm til 6am
@@ -364,7 +417,7 @@ WeatherIconURL() {
 #     my $dayname = ReadingsVal($d, "fc${i}_day_of_week", "");
 #     $dayname = "Heute" if($i==1);
 #     $dayname = "Morgen" if($i==2);
-# 
+#
 # #       Log 1, "Icon$i: $imgHome  $icon";
 #     $ret .= sprintf('<tr><td class="weathericon"><img src="%s%s" class="weathericon"></td><td class="weathertext"><span class="weather_dayname">%s:</span><br>%s<br>Min: %s°C | Max: %s°C</td></tr>'."\n",
 #         $imgHome, $icon,
@@ -372,44 +425,10 @@ WeatherIconURL() {
 #         ReadingsVal($d, "fc${i}_condition", ""),
 #         ReadingsVal($d, "fc${i}_low_c", ""), ReadingsVal($d, "fc${i}_high_c", ""));
 #   }
-# 
+#
 #   $ret .= "</table>";
 #   return $ret;
-# 
-# 
+#
+#
 # }
-
-#####################################
-# This has to be modularized in the future.
-sub
-WeatherAsHtml($)
-{
-  my ($d) = @_;
-  $d = "<none>" if(!$d);
-  return "$d is not a Weather instance<br>"
-        if(!$defs{$d} || $defs{$d}{TYPE} ne "Weather");
-  my $imgHome="http://www.google.com";
-
-  my $ret = "<table>";
-  $ret .= sprintf('<tr><td><img src="%s%s"></td><td>%s<br>temp %s, hum %s, %s</td></tr>',
-        $imgHome, ReadingsVal($d, "icon", ""),
-        ReadingsVal($d, "condition", ""),
-        ReadingsVal($d, "temp_c", ""), ReadingsVal($d, "humidity", ""),
-        ReadingsVal($d, "wind_condition", ""));
-
-  for(my $i=1; $i<=4; $i++) {
-    $ret .= sprintf('<tr><td><img src="%s%s"></td><td>%s: %s<br>min %s max %s</td></tr>',
-        $imgHome, ReadingsVal($d, "fc${i}_icon", ""),
-        ReadingsVal($d, "fc${i}_day_of_week", ""),
-        ReadingsVal($d, "fc${i}_condition", ""),
-        ReadingsVal($d, "fc${i}_low_c", ""), ReadingsVal($d, "fc${i}_high_c", ""));
-  }
-
-  $ret .= "</table>";
-  return $ret;
-}
-
-#####################################
-
-
 1;
