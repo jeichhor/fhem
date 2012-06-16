@@ -455,6 +455,7 @@ FW_AnswerCall($)
     # if we do not have the icon, we convert the device state to the icon name
     if(!$FW_icons{$icon}) {
       $icon = FW_dev2image($icon);
+      #Debug "We do not have it and thus use $icon which is " . $FW_icons{$icon};
       $cachable = 0;
     }
     $FW_icons{$icon} =~ m/(.*)\.(gif|jpg|png)/;
@@ -2087,6 +2088,14 @@ FW_ReadIcons()
 }
 
 sub
+FW_IconOrOld($$) {
+  my ($old,$new)= @_;
+  my $icon= "${new}.png";
+  return $FW_icons{$icon} ? $icon : $old;
+}
+
+
+sub
 FW_dev2image($)
 {
   my ($name) = @_;
@@ -2096,12 +2105,14 @@ FW_dev2image($)
   my ($type, $state) = ($defs{$name}{TYPE}, $defs{$name}{STATE});
   return $icon if(!$type || !defined($state));
 
+  #Debug "Looking for an icon for $name $type $state";
+
   $state =~ s/ .*//; # Want to be able to have icons for "on-for-timer xxx"
-  $icon = $FW_icons{$state}         if(defined($FW_icons{$state}));# on.png
-  $icon = $FW_icons{$type}          if($FW_icons{$type});          # FS20.png
-  $icon = $FW_icons{"$type.$state"} if($FW_icons{"$type.$state"}); # FS20.on.png
-  $icon = $FW_icons{$name}          if($FW_icons{$name});          # lamp.png
-  $icon = $FW_icons{"$name.$state"} if($FW_icons{"$name.$state"}); # lamp.on.png
+  $icon= FW_IconOrOld($icon,$state);            # on
+  $icon= FW_IconOrOld($icon,$type);             # FS20
+  $icon= FW_IconOrOld($icon,"$type.$state");    # FS20.on
+  $icon= FW_IconOrOld($icon,$name);             # MyLamp
+  $icon= FW_IconOrOld($icon,"$name.$state");    # MyLamp.on
   return $icon;
 }
 
@@ -2268,6 +2279,7 @@ FW_devState($$)
   } else {
     my $icon;
     $icon = FW_dev2image($d);
+    #Debug "Dev2Image returned $icon for $d";
     $txt = "<img src=\"$FW_ME/icons/$icon\" alt=\"$txt\"/>"
                     if($icon);
   }
