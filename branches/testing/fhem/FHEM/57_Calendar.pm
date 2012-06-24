@@ -8,10 +8,13 @@
 ##############################################
 # $Id $
 
+# Todos:
+#  Support recurring events
+
 
 use strict;
 use warnings;
-use Time::Local;
+use HttpUtils;
 
 
 ##############################################
@@ -88,7 +91,7 @@ sub parseSub {
     last if($line =~ m/^END:.*$/);
     if($line =~ m/^BEGIN:(.*)$/) {
       my $entry= ICal::Entry->new($1);
-      push $self->{entries}, $entry;
+      push @{$self->{entries}}, $entry;
       $ln= $entry->parseSub($ln,@ical);
     } else {
       $self->addproperty($line);
@@ -231,14 +234,14 @@ sub modeChanged {
 # 20120520:         a date string has no time zone associated
 sub tm {
   my ($t)= @_;
-  #debug "convert $t";
+  #main::debug "convert $t";
   my ($year,$month,$day)= (substr($t,0,4), substr($t,4,2),substr($t,6,2));
   if(length($t)>8) {
       my ($hour,$minute,$second)= (substr($t,9,2), substr($t,11,2),substr($t,13,2));
-      return Time::Local::timegm($second,$minute,$hour,$day,$month-1,$year-1900);
+      return main::fhemTimeGm($second,$minute,$hour,$day,$month-1,$year-1900);
   } else {
-      #debug "$day $month $year";
-      return Time::Local::timelocal(0,0,0,$day,$month-1,$year-1900);
+      #main::debug "$day $month $year";
+      return main::fhemTimeLocal(0,0,0,$day,$month-1,$year-1900);
   }
 }
 
@@ -266,6 +269,7 @@ sub d {
   $sign= -1 if($c[0] eq "-");
   shift @c if($c[0] =~ m/[\+\-]/);
   my ($dw,$dt)= split("T", $c[0]);
+  $dt="" unless defined($dt);
   if($dw =~ m/(\d+)D$/) {
     $t+= 86400*$1; # days
   } elsif($dw =~ m/(\d+)W$/) {
@@ -311,6 +315,28 @@ sub fromVEvent {
   $self->{lastModified}= tm($vevent->value("LAST-MODIFIED"));
   $self->{summary}= $vevent->value("SUMMARY");
   #$self->{summary}=~ s/;/,/g;
+
+  #
+  # recurring events
+  #
+  # this part is under construction
+  # we have to think a lot about how to deal with the migration of states for recurring events
+  my $rrule= $vevent->value("RRULE");
+  if($rrule) {
+    my @rrparts= split(";", $rrule);
+    my %r= map { split("=", $_); } @rrparts;
+    #foreach my $k (keys %r) {
+    #  main::debug "Rule part $k is $r{$k}";
+    #}
+    my $freq= $r{"FREQ"};
+    #
+    # weekly
+    #
+    if($freq eq "WEEKLY") {
+      my @weekdays= split(",",$r{"BYDAY"});
+    }
+  }
+  
 
   # alarms
   my @valarms= grep { $_->{type} eq "VALARM" } @{$vevent->{entries}};
@@ -360,6 +386,16 @@ sub asFull {
     ts($self->{end}),
     $self->{summary}
   );
+}
+
+# returns 1 if time is before alarm time and before start time, else 0
+sub isUpcoming {
+  my ($self,$t) = @_;
+  if($self->{alarm}) {
+    return $t< $self->{alarm} ? 1 : 0;
+  } else {
+    return $t< $self->{start} ? 1 : 0;
+  }
 }
 
 # returns 1 if time is between alarm time and start time, else 0
@@ -416,12 +452,12 @@ sub new {
 
 sub uids {
   my ($self)= @_;
-  return keys $self->{events};
+  return keys %{$self->{events}};
 }
 
 sub events {
   my ($self)= @_;
-  return values $self->{events};
+  return values %{$self->{events}};
 }
 
 sub event {
@@ -501,6 +537,7 @@ sub updateFromCalendar {
 #####################################
 
 package main;
+
 
 
 #####################################
@@ -595,16 +632,11 @@ sub Calendar_GetUpdate($) {
 
   my $url= $hash->{fhem}{url};
   
-  # split into hostname and filename, TODO: enable https
-  if($url =~ m,^http://(.+?)(/.+)$,) {
-    # well-formed, host now in $1, filename now in $2
-    #main::debug "Get $url";
-  } else {
-    Log 1, "Calendar " . $hash->{NAME} . ": $url is not a valid URL.";
+  my $ics= GetFileFromURL($url);
+  if(!defined($ics)) {
+    Log 1, "Calendar " . $hash->{NAME} . ": Could not retrieve $url";
     return 0;
   }
-  my $ics= GetHttpFile("$1:80",$2);
-  return 0 if($ics eq "");
 
   # we parse the calendar into a recursive ICal::Entry structure
   my $ical= ICal::Entry->new("root");
@@ -612,10 +644,30 @@ sub Calendar_GetUpdate($) {
   #main::debug "*** Result:\n";
   #main::debug $ical->asString();
 
+  my @entries= @{$ical->{entries}};
+  if($#entries<0) {
+    Log 1, "Calendar " . $hash->{NAME} . ": Not an ical file at $url";
+    $hash->{STATE}= "Not an ical file at URL";
+    return 0;
+  };
+  
+  my $root= @{$ical->{entries}}[0];
+  my $calname= "?";
+  if($root->{type} ne "VCALENDAR") {
+    Log 1, "Calendar " . $hash->{NAME} . ": Root element is not a VCALENDAR";
+    $hash->{STATE}= "Root element is not a VCALENDAR";
+    return 0;
+  } else {
+    $calname= $root->value("X-WR-CALNAME");
+  }
+  
+    
+  $hash->{STATE}= "Active";
+  
   # we now create the events from it
   #main::debug "Creating events...";
   my $eventsObj= $hash->{fhem}{events};
-  $eventsObj->updateFromCalendar(@{$ical->{entries}}[0]);
+  $eventsObj->updateFromCalendar($root);
   $hash->{fhem}{events}= $eventsObj;
 
   # we now update the readings
@@ -629,6 +681,7 @@ sub Calendar_GetUpdate($) {
 
   #$hash->{STATE}= $val;
   readingsBeginUpdate($hash);
+  readingsUpdate($hash, "calname", $calname);
   readingsUpdate($hash, "all", join(";", @all));
   readingsUpdate($hash, "stateNew", join(";", @new));
   readingsUpdate($hash, "stateUpdated", join(";", @updated));
@@ -705,7 +758,6 @@ sub Calendar_Get($@) {
   }
 
 }
-
 
 #####################################
 sub Calendar_Define($$) {

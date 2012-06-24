@@ -40,9 +40,9 @@ FHEM2FHEM_Define($$)
   my ($hash, $def) = @_;
   my @a = split("[ \t][ \t]*", $def);
 
-  if(@a != 4 || !($a[3] =~ m/^(LOG|RAW):(.*)$/)) {
+  if(@a < 4 || @a > 5 || !($a[3] =~ m/^(LOG|RAW):(.*)$/)) {
     my $msg = "wrong syntax: define <name> FHEM2FHEM host[:port] ".
-                        "[LOG:regexp|RAW:device]";
+                        "[LOG:regexp|RAW:device] {portpasswort}";
     Log 2, $msg;
     return $msg;
   }
@@ -68,7 +68,7 @@ FHEM2FHEM_Define($$)
     $hash->{Host} = $dev;
   }
   $hash->{Host} = $dev;
-
+  $hash->{portpassword} = $a[4] if(@a == 5);
 
   FHEM2FHEM_CloseDev($hash);    # Modify...
   return FHEM2FHEM_OpenDev($hash, 0);
@@ -93,6 +93,8 @@ FHEM2FHEM_Write($$)
     my $conn = IO::Socket::INET->new(PeerAddr => $dev);
     return if(!$conn);  # Hopefuly it is reported elsewhere
     $hash->{TCPDev2} = $conn;
+    syswrite($hash->{TCPDev2}, $hash->{portpassword} . "\n")
+        if($hash->{portpassword});
   }
   my $rdev = $hash->{rawDevice};
   syswrite($hash->{TCPDev2}, "iowrite $rdev $fn $msg\n");
@@ -231,6 +233,8 @@ FHEM2FHEM_OpenDev($$)
 
   $hash->{STATE}= "connected";
   DoTrigger($name, "CONNECTED") if($reopen);
+  syswrite($hash->{TCPDev}, $hash->{portpassword} . "\n")
+        if($hash->{portpassword});
   my $msg = $hash->{informType} eq "LOG" ? "inform on" : "inform raw";
   syswrite($hash->{TCPDev}, $msg . "\n");
   return undef;

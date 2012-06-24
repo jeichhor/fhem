@@ -8,6 +8,7 @@ package main;
 use strict;
 use warnings;
 use POSIX;
+use HttpUtils;
 
 sub dayofyear {
     my ($day1,$month,$year)=@_;
@@ -191,9 +192,13 @@ sub Twilight_GetUpdate{
    for(my $i=0;$i<6;$i++){
       ($sunrise_set[$i]{RISE},$sunrise_set[$i]{SET})=
          twilight_calc($latitude,$longitude,$sunrise_set[$i]{DEGREE},$declination,$timezone,$midseconds,$timediff);
-         readingsUpdate($hash,$sunrise_set[$i]{SR_NAME},strftime("%H:%M:%S",localtime($sunrise_set[$i]{RISE})));
-         readingsUpdate($hash,$sunrise_set[$i]{SS_NAME},strftime("%H:%M:%S",localtime($sunrise_set[$i]{SET})));
-   }     
+         readingsUpdate($hash, $sunrise_set[$i]{SR_NAME},
+             $sunrise_set[$i]{RISE} eq "0" ? "undefined" : 
+             strftime("%H:%M:%S",localtime($sunrise_set[$i]{RISE})));
+         readingsUpdate($hash, $sunrise_set[$i]{SS_NAME},
+             $sunrise_set[$i]{SET} eq "2000000000" ? "undefined" : 
+             strftime("%H:%M:%S",localtime($sunrise_set[$i]{SET})));
+   }
    my $k=0;
    my $half="RISE";   
    my $nexttime;
@@ -214,24 +219,25 @@ sub Twilight_GetUpdate{
 		    $nexttime=900 if($nexttime>900);
          }else{
 		    $nexttime = $nexttime-$now+10;
-	 }
-	 if(!$hash->{LOCAL}) {
-	    InternalTimer(sprintf("%.0f",$now+$nexttime), "Twilight_GetUpdate", $hash, 0);
- 	    readingsUpdate($hash,"nextUpdate",strftime("%H:%M:%S",localtime($now+$nexttime)));
-	 }
-	 $hash->{STATE}=$i;
-	 last;
+         }
+         if(!$hash->{LOCAL}) {
+            InternalTimer(sprintf("%.0f",$now+$nexttime), "Twilight_GetUpdate", $hash, 0);
+            readingsUpdate($hash,"nextUpdate",strftime("%H:%M:%S",localtime($now+$nexttime)));
+         }
+         $hash->{STATE}=$i;
+         last;
        }
-      if ($i == 5){
-         $k=1;
-         $half="SET";
-      }
-	  if($nexttime<$now && $i==11){
-		if(!$hash->{LOCAL}) {
-			InternalTimer($now+900, "Twilight_GetUpdate", $hash, 0);
-		}
-		readingsUpdate($hash,"light", 0);
-		$hash->{STATE}=0;
+
+        if ($i == 5){
+           $k=1;
+           $half="SET";
+        }
+        if($nexttime<$now && $i==11){
+          if(!$hash->{LOCAL}) {
+              InternalTimer($now+900, "Twilight_GetUpdate", $hash, 0);
+          }
+          readingsUpdate($hash,"light", 0);
+          $hash->{STATE}=0;
 	  }
    }
    
@@ -259,6 +265,8 @@ sub twilight_calc {
       $sunrise=0;
       $sunset=2000000000;
    }
+   $sunrise =          0 if($sunrise eq "nan");
+   $sunset  = 2000000000 if($sunset  eq "nan");
    return $sunrise, $sunset;
 }
 
@@ -267,7 +275,7 @@ sub Twilight_getWeatherHorizon{
    #condition codes are described in FHEM wiki and in the documentation of the yahoo weather API
    my $hash=shift;
    my $location=$hash->{WEATHER};
-   my $xml = GetHttpFile("weather.yahooapis.com:80","/forecastrss?w=".$location."&u=c",4.0);
+   my $xml = GetFileFromURL("http://weather.yahooapis.com/forecastrss?w=".$location."&u=c",4.0);
    my $current;
    if($xml=~/code="(.*)"(\ *)temp/){
     if(defined($1)){
