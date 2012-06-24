@@ -28,6 +28,8 @@
 #  for inspiration.
 #
 #  Homepage:  http://fhem.de
+#
+# $Id$
 
 
 use strict;
@@ -50,7 +52,6 @@ sub addToAttrList($);
 sub CallFn(@);
 sub CommandChain($$);
 sub CheckDuplicate($$);
-sub DoClose($);
 sub DoTrigger($$);
 sub Dispatch($$$);
 sub FmtDateTime($);
@@ -81,7 +82,7 @@ sub fhem($);
 sub fhz($);
 sub IsDummy($);
 sub IsIgnored($);
-sub setGlobalAttrBeforeFork();
+sub setGlobalAttrBeforeFork($);
 sub redirectStdinStdErr();
 sub setReadingsVal($$$$);
 sub addEvent($$);
@@ -160,13 +161,12 @@ use vars qw($reread_active);
 
 my $AttrList = "room group comment alias eventMap";
 
-my $server;			# Server socket
 my %comments;			# Comments from the include files
 my $ipv6;			# Using IPV6
 my $currlogfile;		# logfile, without wildcards
 my $currcfgfile="";		# current config/include file
 my $logopened = 0;              # logfile opened or using stdout
-my %client;			# Client array
+my %inform;			# Inform hash
 my $rcvdquit;			# Used for quit handling in init files
 my $sig_term = 0;		# if set to 1, terminate (saving the state)
 my %intAt;			# Internal at timer hash.
@@ -190,14 +190,14 @@ $init_done = 0;
 $modules{Global}{ORDER} = -1;
 $modules{Global}{LOADED} = 1;
 $modules{Global}{AttrList} =
-        "archivecmd allowfrom apiversion archivedir configfile lastinclude logfile " .
-        "modpath nrarchive pidfilename port statefile title userattr " .
-        "verbose:1,2,3,4,5 mseclog version nofork logdir holiday2we " .
-        "autoload_undefined_devices dupTimeout latitude longitude ".
-        "backupcmd backupdir backupsymlink backup_before_update";
+  "archivecmd apiversion archivedir configfile lastinclude logfile " .
+  "modpath nrarchive pidfilename port statefile title userattr " .
+  "verbose:1,2,3,4,5 mseclog version nofork logdir holiday2we " .
+  "autoload_undefined_devices dupTimeout latitude longitude " .
+  "backupcmd backupdir backupsymlink backup_before_update " .
+  "exclude_from_update motd";
+
 $modules{Global}{AttrFn} = "GlobalAttr";
-
-
 
 %cmds = (
   "?"       => { Fn=>"CommandHelp",
@@ -225,6 +225,8 @@ $modules{Global}{AttrFn} = "GlobalAttr";
   "modify"  => { Fn=>"CommandModify",
 	    Hlp=>"device <options>,modify the definition (e.g. at, notify)" },
   "quit"    => { Fn=>"CommandQuit",
+	    Hlp=>",end the client session" },
+  "exit"    => { Fn=>"CommandQuit",
 	    Hlp=>",end the client session" },
   "reload"  => { Fn=>"CommandReload",
 	    Hlp=>"<module-name>,reload the given module (e.g. 99_PRIV)" },
@@ -292,11 +294,11 @@ if(int(@ARGV) == 2) {
   my $buf;
   my $addr = $ARGV[0];
   $addr = "localhost:$addr" if($ARGV[0] !~ m/:/);
-  $server = IO::Socket::INET->new(PeerAddr => $addr);
-  die "Can't connect to $addr\n" if(!$server);
-  syswrite($server, "$ARGV[1] ; quit\n");
-  shutdown($server, 1);
-  while(sysread($server, $buf, 256) > 0) {
+  my $client = IO::Socket::INET->new(PeerAddr => $addr);
+  die "Can't connect to $addr\n" if(!$client);
+  syswrite($client, "$ARGV[1] ; quit\n");
+  shutdown($client, 1);
+  while(sysread($client, $buf, 256) > 0) {
     print($buf);
   }
   exit(0);
@@ -311,7 +313,7 @@ doGlobalDef($ARGV[0]);
 # As newer Linux versions reset serial parameters after fork, we parse the
 # config file after the fork. Since need some global attr parameters before, we
 # read them here.
-setGlobalAttrBeforeFork();   
+setGlobalAttrBeforeFork($attr{global}{configfile});
 
 if($^O =~ m/Win/ && !$attr{global}{nofork}) {
   Log 1, "Forcing 'attr global nofork' on WINDOWS";
@@ -334,7 +336,6 @@ while(time() < 2*3600) {
 
 my $ret = CommandInclude(undef, $attr{global}{configfile});
 Log 1, "configfile: $ret" if($ret);
-die("No port specified in the configfile.\n") if(!$server);
 
 if($attr{global}{statefile} && -r $attr{global}{statefile}) {
   $ret = CommandInclude(undef, $attr{global}{statefile});
@@ -353,8 +354,30 @@ if($pfn) {
 # create the global interface definitions
 createInterfaceDefinitions();
 
+my $gp = $attr{global}{port};
+if($gp) {
+  Log 3, "Converting 'attr global port $gp' to 'define telnetPort telnet $gp'";
+  CommandDefine(undef, "telnetPort telnet $gp");
+  delete($attr{global}{port});
+}
+
+my $sc_text = "SecurityCheck:";
+$attr{global}{motd} = "$sc_text\n\n"
+        if(!$attr{global}{motd} || $attr{global}{motd} =~ m/^$sc_text/);
+
 $init_done = 1;
 DoTrigger("global", "INITIALIZED");
+
+$attr{global}{motd} .=
+        "\nRestart fhem for a new check if the problem ist fixed,\n".
+        "or set the global attribute motd to none to supress this message.\n"
+        if($attr{global}{motd} =~ m/^$sc_text\n\n./);
+my $motd = $attr{global}{motd};
+if($motd eq "$sc_text\n\n") {
+  delete($attr{global}{motd});
+} else {
+  Log 2, $motd if($motd ne "none");
+}
 
 Log 0, "Server started (version $attr{global}{version}, pid $$)";
 
@@ -369,17 +392,9 @@ while (1) {
 
   my $timeout = HandleTimeout();
 
-  vec($rin, $server->fileno(), 1) = 1;
   foreach my $p (keys %selectlist) {
     vec($rin, $selectlist{$p}{FD}, 1) = 1;
   }
-  foreach my $c (keys %client) {
-    vec($rin, fileno($client{$c}{fd}), 1) = 1;
-  }
-
-  # for documentation see
-  # man 2 select
-  # http://perldoc.perl.org/functions/select.html
   $timeout = $readytimeout if(keys(%readyfnlist) &&
                               (!defined($timeout) || $timeout > $readytimeout));
   my $nfound = select($rout=$rin, undef, undef, $timeout);
@@ -434,55 +449,6 @@ while (1) {
     }
   }
 
-  if(vec($rout, $server->fileno(), 1)) {
-    my @clientinfo = $server->accept();
-    if(!@clientinfo) {
-      Log 1, "Accept failed: $!";
-      next;
-    }
-    my ($port, $iaddr) = $ipv6 ?
-        sockaddr_in6($clientinfo[1]) :
-        sockaddr_in($clientinfo[1]);
-    my $caddr = $ipv6 ?
-        inet_ntop(AF_INET6(), $iaddr):
-        inet_ntoa($iaddr);
-    my $af = $attr{global}{allowfrom};
-    if($af) {
-      if(",$af," !~ m/,$caddr,/) {
-        my $hostname = gethostbyaddr($iaddr, AF_INET);
-        if(!$hostname || ",$af," !~ m/,$hostname,/) {
-          Log 1, "Connection refused from $caddr:$port";
-          close($clientinfo[0]);
-          next;
-        }
-      }
-    }
-
-    my $fd = $clientinfo[0];
-    $client{$fd}{fd}   = $fd;
-    $client{$fd}{addr} = "$caddr:$port";
-    $client{$fd}{buffer} = "";
-    Log 4, "Connection accepted from $client{$fd}{addr}";
-  }
-
-  foreach my $c (keys %client) {
-
-    next unless (vec($rout, fileno($client{$c}{fd}), 1));
-
-    my $buf;
-    my $ret = sysread($client{$c}{fd}, $buf, 256);
-    if(!defined($ret) || $ret <= 0) {
-      DoClose($c);
-      next;
-    }
-    if(ord($buf) == 4) {	# EOT / ^D
-      CommandQuit($c, "");
-      next;
-    }
-    $buf =~ s/\r//g;
-    $client{$c}{buffer} .= $buf;
-    AnalyzeInput($c);
-  }
 }
 
 ################################################
@@ -568,18 +534,6 @@ Log($$)
 
 #####################################
 sub
-DoClose($)
-{
-  my $c = shift;
-
-  Log 4, "Connection closed for $client{$c}{addr}";
-  close($client{$c}{fd});
-  delete($client{$c});
-  return undef;
-}
-
-#####################################
-sub
 IOWrite($@)
 {
   my ($hash, @a) = @_;
@@ -627,40 +581,6 @@ CommandIOWrite($$)
   return $ret;
 }
 
-
-#####################################
-sub
-AnalyzeInput($)
-{
-  my $c = shift;
-  my @ret;
-
-  while($client{$c}{buffer} =~ m/\n/) {
-    my ($cmd, $rest) = split("\n", $client{$c}{buffer}, 2);
-    $client{$c}{buffer} = $rest;
-    if($cmd) {
-      if($cmd =~ m/\\ *$/) {                     # Multi-line
-        $client{$c}{prevlines} .= $cmd . "\n";
-      } else {
-        if($client{$c}{prevlines}) {
-          $cmd = $client{$c}{prevlines} . $cmd;
-          undef($client{$c}{prevlines});
-        }
-        my $ret = AnalyzeCommandChain($c, $cmd);
-        push @ret, $ret if(defined($ret));
-      }
-    } else {
-      $client{$c}{prompt} = 1;                  # Empty return
-    }
-    next if($rest);
-  }
-  my $ret = "";
-  $ret .= (join("\n", @ret) . "\n") if(@ret);
-  $ret .= ($client{$c}{prevlines} ? "> " : "fhem> ")
-          if($client{$c}{prompt} && !$client{$c}{rcvdQuit});
-  syswrite($client{$c}{fd}, $ret) if($ret);
-  DoClose($c) if($client{$c}{rcvdQuit});
-}
 
 #####################################
 # i.e. split a line by ; (escape ;;), and execute each
@@ -867,7 +787,7 @@ CommandInclude($$)
   if(!open($fh, $arg)) {
     return "Can't open $arg: $!";
   }
-
+  Log 1, "Including $arg";
   if(!$init_done &&
      $arg ne AttrVal("global", "statefile", "") &&
      $arg ne AttrVal("global", "configfile", "")) {
@@ -952,6 +872,7 @@ sub
 CommandRereadCfg($$)
 {
   my ($cl, $param) = @_;
+  my $name = $cl->{NAME} if($cl);
 
   WriteStatefile();
 
@@ -959,7 +880,7 @@ CommandRereadCfg($$)
   $init_done = 0;
 
   foreach my $d (keys %defs) {
-    my $ret = CallFn($d, "UndefFn", $defs{$d}, $d);
+    my $ret = CallFn($d, "UndefFn", $defs{$d}, $d) if($name && $name ne $d);
     return $ret if($ret);
   }
 
@@ -969,8 +890,10 @@ CommandRereadCfg($$)
   %attr = ();
   %selectlist = ();
   %readyfnlist = ();
+  %inform = ();
 
   doGlobalDef($cfgfile);
+  setGlobalAttrBeforeFork($cfgfile);
 
   my $ret = CommandInclude($cl, $cfgfile);
   if($attr{global}{statefile} && -r $attr{global}{statefile}) {
@@ -978,6 +901,7 @@ CommandRereadCfg($$)
     $ret = (defined($ret) ? "$ret\n$ret2" : $ret2) if(defined($ret2));
   }
   DoTrigger("global", "REREADCFG");
+  $defs{$name} = $selectlist{$name} = $cl if($name);
 
   $init_done = 1;
   $reread_active=0;
@@ -993,8 +917,8 @@ CommandQuit($$)
   if(!$cl) {
     $rcvdquit = 1;
   } else {
-    $client{$cl}{rcvdQuit} = 1;
-    return "Bye..." if($client{$cl}{prompt});
+    $cl->{rcvdQuit} = 1;
+    return "Bye..." if($cl->{prompt});
   }
   return undef;
 }
@@ -1120,6 +1044,7 @@ CommandSave($$)
               ($a eq "configfile" || $a eq "version"));
       my $val = $attr{$d}{$a};
       $val =~ s/;/;;/g;
+      $val =~ s/\n/\\\n/g;
       print $fh "attr $d $a $val\n";
     }
   }
@@ -1664,45 +1589,6 @@ GlobalAttr($$)
   }
 
   ################
-  elsif($name eq "port") {
-
-    return undef if($reread_active);
-    my ($port, $global) = split(" ", $val);
-    if($global && $global ne "global") {
-      return "Bad syntax, usage: attr global port <portnumber> [global]";
-    }
-    if($port =~ m/^IPV6:(\d+)$/i) {
-      $port = $1;
-      $ipv6 = 1;
-      eval "require IO::Socket::INET6; use Socket6;";
-      if($@) {
-        Log 1, "attr global port: $@";
-        Log 1, "Can't load INET6, falling back to IPV4";
-        $ipv6 = 0;
-      }
-    }
-
-    my $server2;
-    my @opts = (
-        Domain    => ($ipv6 ? AF_INET6() : AF_UNSPEC), # Linux bug
-        LocalHost => ($global ? undef : "localhost"),
-        LocalPort => $port,
-        Listen    => 10,
-        ReuseAddr => 1
-    );
-    $server2 = $ipv6 ? IO::Socket::INET6->new(@opts) : 
-                       IO::Socket::INET->new(@opts);
-    if(!$server2) {
-      Log 1, "attr global port: Can't open server port at $port: $!";
-      return "$!" if($init_done);
-      die "Can't open server port at $port: $!\n";
-    }
-    Log 2, "Telnet port $port opened";
-    close($server) if($server);
-    $server = $server2;
-  }
-
-  ################
   elsif($name eq "verbose") {
     if($val =~ m/^[0-5]$/) {
       return undef;
@@ -1718,6 +1604,7 @@ GlobalAttr($$)
     my $modpath = "$val/FHEM";
 
     opendir(DH, $modpath) || return "Can't read $modpath: $!";
+    push @INC, $modpath if(!grep(/$modpath/, @INC));
     my $counter = 0;
 
     foreach my $m (sort readdir(DH)) {
@@ -1734,6 +1621,7 @@ GlobalAttr($$)
              "subdirectory called \"FHEM\" exists wich in turn contains " .
              "the fhem module files <*>.pm";
     }
+
 
   }
 
@@ -1910,22 +1798,21 @@ CommandInform($$)
 {
   my ($cl, $param) = @_;
 
-  if(!$cl) {
-    return;
-  }
+  return if(!$cl);
+  my $name = $cl->{NAME};
 
   return "Usage: inform {on|timer|raw|off} [regexp]"
         if($param !~ m/^(on|off|raw|timer)/);
 
-  delete($client{$cl}{inform});
-  delete($client{$cl}{informRegexp});
+  delete($inform{$name});
   if($param !~ m/^off/) {
     my ($type, $regexp) = split(" ", $param);
-    $client{$cl}{inform} = $type;
+    $inform{$name}{NR} = $cl->{NR};
+    $inform{$name}{type} = $type;
     if($regexp) {
       eval { "Hallo" =~ m/$regexp/ };
       return "Bad regexp: $@" if($@);
-      $client{$cl}{informRegexp} = $regexp;
+      $inform{$name}{regexp} = $regexp;
     }
     Log 4, "Setting inform to $param";
 
@@ -2243,19 +2130,23 @@ DoTrigger($$)
     # Inform
     if($defs{$dev}{CHANGED}) {    # It gets deleted sometimes (?)
       $max = int(@{$defs{$dev}{CHANGED}}); # can be enriched in the notifies
-      foreach my $c (keys %client) {        # Do client loop first, is cheaper
-        next if(!$client{$c}{inform} || $client{$c}{inform} eq "raw");
+      foreach my $c (keys %inform) {
+        if(!$defs{$c} || $defs{$c}{NR} != $inform{$c}{NR}) {
+          delete($inform{$c});
+          next;
+        }
+        next if($inform{$c}{type} eq "raw");
         my $tn = TimeNow();
         if($attr{global}{mseclog}) {
           my ($seconds, $microseconds) = gettimeofday();
           $tn .= sprintf(".%03d", $microseconds/1000);
         }
-        my $re = $client{$c}{informRegexp};
+        my $re = $inform{$c}{regexp};
         for(my $i = 0; $i < $max; $i++) {
           my $state = $defs{$dev}{CHANGED}[$i];
           next if($re && $state !~ m/$re/);
-          syswrite($client{$c}{fd},
-            ($client{$c}{inform} eq "timer" ? "$tn " : "") .
+          syswrite($defs{$c}{CD},
+            ($inform{$c}{type} eq "timer" ? "$tn " : "") .
             "$defs{$dev}{TYPE} $dev $state\n");
         }
       }
@@ -2487,9 +2378,13 @@ Dispatch($$$)
   ################
   # Inform raw
   if(!$iohash->{noRawInform}) {
-    foreach my $c (keys %client) {
-      next if(!$client{$c}{inform} || $client{$c}{inform} ne "raw");
-      syswrite($client{$c}{fd}, "$hash->{TYPE} $name $dmsg\n");
+    foreach my $c (keys %inform) {
+      if(!$defs{$c} || $defs{$c}{NR} != $inform{$c}{NR}) {
+        delete($inform{$c});
+        next;
+      }
+      next if($inform{$c}{type} ne "raw");
+      syswrite($defs{$c}{CD}, "$hash->{TYPE} $name $dmsg\n");
     }
   }
 
@@ -2648,9 +2543,9 @@ ReplaceEventMap($$$)
 }
 
 sub
-setGlobalAttrBeforeFork()
+setGlobalAttrBeforeFork($)
 {
-  my $f = $attr{global}{configfile};
+  my ($f) = @_;
   open(FH, $f) || die("Cant open $f: $!\n");
   while(my $l = <FH>) {
     $l =~ s/[\r\n]//g;
@@ -2980,7 +2875,55 @@ readingsUpdate($$$) {
   return $rv;
 }
 
-##################
+###############################################################################
+#
+# date and time routines
+#
+##############################################################################
+
+sub
+fhemTzOffset($) {
+    # see http://stackoverflow.com/questions/2143528/whats-the-best-way-to-get-the-utc-offset-in-perl
+    my $t = shift;
+    my @l = localtime($t);
+    my @g = gmtime($t);
+
+    # the offset is positive if the local timezone is ahead of GMT, e.g. we get 2*3600 seconds for CET DST vs GMT
+    return 60*(($l[2] - $g[2] + ((($l[5]<<9)|$l[7]) <=> (($g[5]<<9)|$g[7])) * 24) * 60 + $l[1] - $g[1]);
+}
+
+sub
+fhemTimeGm($$$$$$) {
+    # see http://de.wikipedia.org/wiki/Unixzeit
+    my ($sec,$min,$hour,$mday,$month,$year) = @_;
+
+    # $mday= 1..
+    # $month= 0..11
+    # $year is year-1900
+    
+    $year+= 1900;
+    my $isleapyear= $year % 4 ? 0 : $year % 100 ? 1 : $year % 400 ? 0 : 1;
+    my $leapyears= int((($year-1)-1968)/4 - (($year-1)-1900)/100 + (($year-1)-1600)/400);
+    #Debug sprintf("%02d.%02d.%04d %02d:%02d:%02d", $mday,$month+1,$year,$hour,$min,$sec);
+
+    if ( $^O eq 'MacOS' ) {
+      $year-= 1904;
+    } else {
+      $year-= 1970; # the Unix Epoch
+    }
+
+    my @d= (0,31,59,90,120,151,181,212,243,273,304,334); # no leap day
+    # add one day in leap years if month is later than February
+    $mday++ if($month>1 && $isleapyear);
+    return $sec+60*($min+60*($hour+24*($d[$month]+$mday-1+365*$year+$leapyears)));
+}
+
+sub
+fhemTimeLocal($$$$$$) {
+    my $t= fhemTimeGm($_[0],$_[1],$_[2],$_[3],$_[4],$_[5]);
+    return $t-fhemTzOffset($t);
+}
+
 sub
 secSince2000()
 {
@@ -2988,9 +2931,8 @@ secSince2000()
   my $t = time();
   my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($t);
   $t -= 946684800; # seconds between 01.01.2000, 00:00 and THE EPOCH (1970)
-  $t -= 1*3600; # Timezone offset from UTC * 3600 (MEZ=1). FIXME/HARDCODED
-  $t += 3600 if $isdst;
+  $t -= fhemTzOffset($t);
   return $t;
 }
-  
+
 1;
