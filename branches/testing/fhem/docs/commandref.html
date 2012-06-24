@@ -28,7 +28,6 @@
   <br>
   <b>fhem commands</b>
   <ul>
-
       <a href="#attr">attr</a> &nbsp;
       <a href="#backup">backup</a> &nbsp;
       <a href="#CULflash">CULflash</a> &nbsp;
@@ -112,6 +111,7 @@
       <a href="#OREGON">OREGON</a> &nbsp;
       <a href="#OWFS">OWFS</a> &nbsp;
       <a href="#OWTEMP">OWTEMP</a> &nbsp;
+      <a href="#POKEYS">POKEYS</a> &nbsp;
       <a href="#RFXCOM">RFXCOM</a> &nbsp;
       <a href="#RFXMETER">RFXMETER</a> &nbsp;
       <a href="#RFXX10REC">RFXX10REC</a> &nbsp;
@@ -166,6 +166,7 @@
     <a href="#notify">notify</a> &nbsp;
     <a href="#sequence">sequence</a> &nbsp;
     <a href="#structure">structure</a> &nbsp;
+    <a href="#telnet">telnet</a> &nbsp;
     <a href="#watchdog">watchdog</a> &nbsp;
     <a href="#weblink">weblink</a> &nbsp;
 
@@ -775,7 +776,7 @@ A line ending with \ will be concatenated with the next one, so long lines
 <a name="updatefhem"></a>
 <h3>updatefhem</h3>
 <ul>
-  <code>updatefhem [&lt;filename&gt;|&lt;housekeeping&gt; [&lt;clean&gt;] [&lt;yes&gt;]|&lt;preserve&gt; [&lt;filename&gt;]]</code> <br>
+  <code>updatefhem [&lt;changed&gt;|&lt;filename&gt;|&lt;housekeeping&gt; [&lt;clean&gt;] [&lt;yes&gt;]|&lt;preserve&gt; [&lt;filename&gt;]]</code> <br>
   <br>
     Update the fhem modules and documentation from a nightly SVN checkout. For
     this purpose Fhem contacts http://fhem.de/fhemupdate, compares the stored
@@ -794,6 +795,17 @@ A line ending with \ will be concatenated with the next one, so long lines
     The complete installation of Fhem will be saved via the <a href="#backup">backup</a>
     command on every update. You can skip this backups by setting
     the global attribute <a href="#backup_before_update">backup_before_update</a> to 0.
+    <br>
+    <br>
+    Have you change or replace original files of the Fhem Distribution,
+    these files will normally be overwritten during an update. To protect
+    your locally modified or replaced files during an update, you can exclude
+    these files with the global attribute <a href="#exclude_from_update">exclude_from_update</a>.
+    <br>
+    <br>
+    If &lt;changed&gt; is specified, updatefhem returns a list of new or
+    modified files since the last update. Furthermore it returns the last
+    changes from the CHANGED file (if the file exists on the update server).
     <br>
     <br>
     If an explicit &lt;filename&gt; is given, then only this file will be
@@ -992,6 +1004,7 @@ A line ending with \ will be concatenated with the next one, so long lines
   Note: The statefile will be saved first, then the config file will be read
   (all devices will be initialized again), and at last the statefile will be
   reloaded. It triggers upon completion the global:REREADCFG event.
+  All existing connections up to the one issuing the rereadcfg will be closed.
   <br><br>
   Example:
   <ul>
@@ -1167,12 +1180,6 @@ A line ending with \ will be concatenated with the next one, so long lines
     </li><br>
 
 
-    <a name="allowfrom"></a>
-    <li>allowfrom<br>
-        Comma (,) separated list of ip-addresses or hostnames. If set,
-        only connections from these addresses are allowed.
-    </li><br>
-
     <a name="backup_before_update"></a>
     <li>backup_before_update<br>
         If this attribute is set to 0, updatefhem skip always backing up your
@@ -1236,6 +1243,16 @@ A line ending with \ will be concatenated with the next one, so long lines
         be written to this file.
     </li><br>
 
+    <a name="exclude_from_update"></a>
+    <li>exclude_from_update<br>
+        Contains a space separated list of file which will be excluded by an update.
+        This Attribute is used by the <a href="#updatefhem">updatefhem</a> command.<br>
+        Example:<br>
+        <ul>
+          attr global exclude_from_update 21_OWTEMP.pm temp4hum4.gplot FS20.on.png FS20.off.png
+        </ul>
+    </li><br>
+
     <a name="holiday2we"></a>
     <li>holiday2we<br>
         If this attribute is set, then the <a href="#perl">$we</a> variable
@@ -1282,6 +1299,14 @@ A line ending with \ will be concatenated with the next one, so long lines
         modpath attribute definition time).
     </li><br>
 
+    <a name="motd"></a>
+    <li>motd<br>
+        Message Of The Day. Displayed on the homescreen of the FHEMWEB package,
+        or directly after the telnet logon, before displaying the fhem> prompt. 
+        SecurityCheck is setting motd if it is not defined upon startup, to
+        avoid this set the motd value to none
+    </li><br>
+
     <a name="mseclog"></a>
     <li>mseclog<br>
         If set, the timestamp in the logfile will contain a millisecond part.
@@ -1299,19 +1324,6 @@ A line ending with \ will be concatenated with the next one, so long lines
         server runs as a daemon, and some distributions would like to check by
         the pid if we are still running. The file will be deleted upon
         shutdown.
-    </li><br>
-
-    <a name="port"></a>
-    <li>port<br>
-        Listen on the TCP/IP port <code>&lt;number&gt;</code> for incoming
-        connections. To offer at least a little bit of security, the server
-        will only listen for connections from the localhost per default. If
-        there is a second value  "global" then the server will listen for
-        non-localhost connections too.<br><br>
-        To use IPV6, specify the port as IPV6:&lt;number&gt;, in this
-        case the perl module IO::Socket:INET6 will be requested.
-        On Linux you may have to install it with cpan -i IO::Socket::INET6 or
-        apt-get libio-socket-inet6-perl; the OSX perl already has this module.
     </li><br>
 
     <a name="statefile"></a>
@@ -2764,7 +2776,15 @@ A line ending with \ will be concatenated with the next one, so long lines
         </li><br>
 
     <li><a name="hmProtocolEvents">hmProtocolEvents</a><br>
-        Generate events for HomeMatic protocol messages.
+        Generate events for HomeMatic protocol messages. These are normally
+        used for debugging, by activating "inform timer" in a telnet session,
+        or looking at the "Event Monitor" window in the FHEMWEB frontend.
+        Example:
+        <ul>
+        <code>
+        2012-05-17 09:44:22.515 CUL CULHM RCV L:0B N:81 CMD:A258 SRC:...... DST:...... 0000 (TYPE=88,WAKEMEUP,BIDI,RPTEN)
+        </code>
+        </ul>
         </li><br>
   </ul>
   <br>
@@ -3407,12 +3427,12 @@ A line ending with \ will be concatenated with the next one, so long lines
       Sequence $s<br>
       $cv $unit<br>
   <li>switch/dimmer/blindActuator:<br>
-      deviceMsg on<br>
-      deviceMsg off<br>
-      deviceMsg $val %<br>
-      poweron on<br>
-      poweron off<br>
-      poweron $val %<br>
+      deviceMsg [on|off|$val %]<br>
+      poweron [on|off|$val]<br>
+  <li>dimmer:<br>
+      dim: [up|down|stop]<br>
+  <li>HM-LC-BL1-PB-FM:<br>
+      motor: [opening|closing]<br>
   <li>remote/pushButton<br>
       Btn$x on<br>
       Btn$x off<br>
@@ -3426,9 +3446,11 @@ A line ending with \ will be concatenated with the next one, so long lines
       Btn$x offLong $counter (to $dest)<br>
       Btn$x onLongRelease $counter (to $dest)<br>
       Btn$x offLongRelease $counter (to $dest)<br>
+      battery: [low|ok]<br>
   <li>swi<br>
       Btn$x toggle<br>
       Btn$x toggle (to $dest)<br>
+      battery: [low|ok]<br>
   <li>motionDetector<br>
       brightness:$b<br>
       alive<br>
@@ -4111,15 +4133,78 @@ A line ending with \ will be concatenated with the next one, so long lines
   <a name="KM271set"></a>
   <b>Set </b>
   <ul>
-    <code>set KM271  &lt;param&gt; [&lt;value&gt;]</code><br><br>
+    <code>set KM271  &lt;param&gt; [&lt;value&gt; [&lt;values&gt;]]</code><br><br>
     where param is one of:
     <ul>
-      <li>hk1_nachtsoll &lt;temp&gt;<br>(0.5 celsius resolution)</li>
-      <li>hk1_tagsoll &lt;temp&gt;<br>(0.5 celsius resolution)</li>
-      <li>hk1_betriebsart [automatik|nacht|tag]</li>
-      <li>ww_soll &lt;temp&gt;<br>(1.0 celsius resolution)</li>
+      <li>hk1_tagsoll &lt;temp&gt;<br>
+          sets the by day temperature for heating circuit 1<br>
+          0.5 celsius resolution - temperature between 10 and 30 celsius</li>
+      <li>hk2_tagsoll &lt;temp&gt;<br>
+          sets the by day temperature for heating circuit 2<br>
+          (see above)</li>
+      <li>hk1_nachtsoll &lt;temp&gt;<br>
+          sets the by night temperature for heating circuit 1<br>
+          (see above)</li>
+      <li>hk2_nachtsoll &lt;temp&gt;<br>
+          sets the by night temperature for heating circuit 2<br>
+          (see above)</li>
+      <li>hk1_betriebsart [automatik|nacht|tag]<br>
+          sets the working mode for heating circuit 1<br>
+          <ul>
+            <li>automatik: the timer program is active and the summer configuration is in effect</li>
+            <li>nacht: manual by night working mode, no timer program is in effect</li>
+            <li>tag: manual by day working mode, no timer program is in effect</li>
+          </ul></li>
+      </li>
+      <li>hk2_betriebsart [automatik|nacht|tag]<br>
+          sets the working mode for heating circuit 2<br>
+          (see above)</li>
+      <li>ww_soll &lt;temp&gt;<br>
+          sets the hot water temperature<br>
+          1.0 celsius resolution - temperature between 30 and 60 celsius</li>
       <li>ww_betriebsart [automatik|nacht|tag]</li>
-      <li>logmode<br>set to logmode / request all parameters again</li>
+          sets the working mode for hot water<br>
+          <ul>
+            <li>automatik: hot water production according to the working modes of both heating circuits</li>
+            <li>nacht: no hot water at all</li>
+            <li>tag: manual permanent hot water</li>
+          </ul></li>
+      <li>hk1_programm [eigen|familie|frueh|spaet|vormittag|nachmittag|mittag|single|senior]<br>
+          sets the timer program for heating circuit 1<br>
+          <ul>
+            <li>eigen: the custom program defined by the user (see below) is used</li>
+            <li>all others: predefined programs from Buderus for various situations (see Buderus manual for details)</li>
+          </ul></li>
+      <li>hk2_programm [eigen|familie|frueh|spaet|vormittag|nachmittag|mittag|single|senior]<br>
+          sets the timer program for heating circuit 2<br>
+          (see above)</li>
+      <li>hk1_timer [&lt;position&gt; delete|&lt;position&gt; &lt;on-day&gt; &lt;on-time&gt; &lt;off-day&gt; &lt;off-time&gt;]<br>
+          sets (or deactivates) a by day working mode time interval for the custom program of heating circuit 1<br>
+          <ul>
+            <li>position: addresses a slot of the custom timer program and must be between 1 and 21<br>
+                The slot will be set to the interval specified by the following on- and off-timepoints or is deactivated when the next argument is <b>delete</b>.</li>
+            <li>on-day: first part of the on-timepoint<br>
+                valid arguments are [mo|di|mi|do|fr|sa|so]</li>
+            <li>on-time: second part of the on-timepoint<br>
+                valid arguments have the format HH:MM (supported resolution: 10 min)</li>
+            <li>off-day: first part of the off-timepoint<br>
+                (see above)</li>
+            <li>off-time: second part of the off-timepoint<br>
+                valid arguments have the format HH:MM (supported resolution: 10 min)</li>
+          </ul>
+          As the on-timepoint is reached, the heating circuit is switched to by day working mode and when the off-timepoint is attained, the circuit falls back to by night working mode.
+          A program can be build up by chaining up to 21 of these intervals. They are ordered by the position argument. There's no behind the scene magic that will automatically consolidate the list.
+          The consistency of the program is in the responsibility of the user.
+          <br><br>
+          Example:
+          <ul>
+            <code>set KM271 hk1_timer 1 mo 06:30 mo 08:20</code><br>
+          </ul><br>
+          This will toogle the by day working mode every Monday at 6:30 and will fall back to by night working mode at 8:20 the same day.</li>
+      <li>hk2_timer [&lt;position&gt; delete|&lt;position&gt; &lt;on-day&gt; &lt;on-time&gt; &lt;off-day&gt; &lt;off-time&gt;]<br>
+          sets (or deactivates) a by day working mode time interval for the custom program of heating circuit 2<br>
+          (see above)</li>
+      <li>logmode<br>set to logmode / request all readings again</li>
     </ul>
   </ul>
   <br>
@@ -4139,8 +4224,8 @@ A line ending with \ will be concatenated with the next one, so long lines
     <a name="all_km271_events"></a>
     <li>all_km271_events<br>
         If this attribute is set to 1, do not ignore following events:<br>
-        Vorlaufisttemperatur_HK1, Kesselvorlaufisttemperatur,
-        Kesselintegral_1, "Kesselintegral_2<br>
+        HK1_Vorlaufisttemperatur, HK2_Vorlaufisttemperatur, Kessel_Vorlaufisttemperatur,
+        Kessel_Integral, Kessel_Integral1<br>
         These events account for ca. 92% of all events.<br>
         All UNKNOWN events are ignored too, most of them were only seen
         directly after setting the device into logmode.
@@ -4153,60 +4238,66 @@ A line ending with \ will be concatenated with the next one, so long lines
   <a name="KM271events"></a>
   <b>Generated events:</b>
   <ul>
-    <li>HK1_Betriebswerte1
-    <li>HK1_Betriebswerte2
-    <li>HK1_Vorlaufsolltemperatur
-    <li>HK1_Vorlaufisttemperatur
-    <li>HK1_Raumsolltemperatur
-    <li>HK1_Raumisttemperatur
-    <li>HK1_Einschaltoptimierungszeit
-    <li>HK1_Ausschaltoptimierungszeit
-    <li>HK1_Pumpenleistung
-    <li>HK1_Mischerstellung
-    <li>HK1_Heizkennlinie_bei_+_10_Grad
-    <li>HK1_Heizkennlinie_bei_0_Grad
-    <li>HK1_Heizkennlinie_bei_-_10_Grad
-    <li>HK2_Betriebswerte1
-    <li>HK2_Betriebswerte2
-    <li>HK2_Vorlaufsolltemperatur
-    <li>HK2_Vorlaufisttemperatur
-    <li>HK2_Raumsolltemperatur
-    <li>HK2_Raumisttemperatur
-    <li>HK2_Einschaltoptimierungszeit
-    <li>HK2_Ausschaltoptimierungszeit
-    <li>HK2_Pumpenleistung
-    <li>HK2_Mischerstellung
-    <li>HK2_Heizkennlinie_bei_+_10_Grad
-    <li>HK2_Heizkennlinie_bei_0_Grad
-    <li>HK2_Heizkennlinie_bei_-_10_Grad
-    <li>WW_Betriebswerte1
-    <li>WW_Betriebswerte2
-    <li>WW_Solltemperatur
-    <li>WW_Isttemperatur
-    <li>WW_Einschaltoptimierungszeit
-    <li>WW_Ladepumpe
-    <li>Kessel_Vorlaufsolltemperatur
-    <li>Kessel_Vorlaufisttemperatur
-    <li>Brenner_Einschalttemperatur
-    <li>Brenner_Ausschalttemperatur
-    <li>Kessel_Integral1
-    <li>Kessel_Integral
-    <li>Kessel_Fehler
-    <li>Kessel_Betrieb
-    <li>Brenner_Ansteuerung
     <li>Abgastemperatur
-    <li>Brenner_Stellwert
+    <li>Aussentemperatur
+    <li>Aussentemperatur_gedaempft
+    <li>Brenner_Ansteuerung
+    <li>Brenner_Ausschalttemperatur
+    <li>Brenner_Einschalttemperatur
     <li>Brenner_Laufzeit1_Minuten2
     <li>Brenner_Laufzeit1_Minuten1
     <li>Brenner_Laufzeit1_Minuten
     <li>Brenner_Laufzeit2_Minuten2
     <li>Brenner_Laufzeit2_Minuten1
     <li>Brenner_Laufzeit2_Minuten
-    <li>Aussentemperatur
-    <li>Aussentemperatur_gedaempft
-    <li>Versionsnummer_VK
-    <li>Versionsnummer_NK
+    <li>ERR_Fehlerspeicher1
+    <li>ERR_Fehlerspeicher2
+    <li>ERR_Fehlerspeicher3
+    <li>ERR_Fehlerspeicher4
+    <li>HK1_Ausschaltoptimierung
+    <li>HK1_Betriebswerte1
+    <li>HK1_Betriebswerte2
+    <li>HK1_Einschaltoptimierung
+    <li>HK1_Heizkennlinie_+10_Grad
+    <li>HK1_Heizkennlinie_-10_Grad
+    <li>HK1_Heizkennlinie_0_Grad
+    <li>HK1_Mischerstellung
+    <li>HK1_Pumpe
+    <li>HK1_Raumisttemperatur
+    <li>HK1_Raumsolltemperatur
+    <li>HK1_Vorlaufisttemperatur
+    <li>HK1_Vorlaufsolltemperatur
+    <li>HK2_Ausschaltoptimierung
+    <li>HK2_Betriebswerte1
+    <li>HK2_Betriebswerte2
+    <li>HK2_Einschaltoptimierung
+    <li>HK2_Heizkennlinie_+10_Grad
+    <li>HK2_Heizkennlinie_-10_Grad
+    <li>HK2_Heizkennlinie_0_Grad
+    <li>HK2_Mischerstellung
+    <li>HK2_Pumpe
+    <li>HK2_Raumisttemperatur
+    <li>HK2_Raumsolltemperatur
+    <li>HK2_Vorlaufisttemperatur
+    <li>HK2_Vorlaufsolltemperatur    
+    <li>Kessel_Betrieb
+    <li>Kessel_Fehler
+    <li>Kessel_Integral
+    <li>Kessel_Integral1
+    <li>Kessel_Vorlaufisttemperatur
+    <li>Kessel_Vorlaufsolltemperatur
+    <li>Letzter_Fehlerstatus
+    <li>Mod_Brenner_Stellglied
     <li>Modulkennung
+    <li>NoData
+    <li>Versionsnummer_NK
+    <li>Versionsnummer_VK
+    <li>WW_Betriebswerte1
+    <li>WW_Betriebswerte2
+    <li>WW_Einschaltoptimierung
+    <li>WW_Isttemperatur
+    <li>WW_Pumpentyp
+    <li>WW_Solltemperatur
   </ul>
   <br>
   As I cannot explain all the values, I logged data for a period and plotted
@@ -4227,8 +4318,8 @@ A line ending with \ will be concatenated with the next one, so long lines
     </ul>
   All of these events are reported directly after initialization (or after
   requesting logmode), along with some 60 configuration records (6byte long
-  each). About 20 parameters from these records are reverse engeneered, they
-  all start with CFG_.
+  each). Most parameters from these records are reverse engeneered, they
+  all start with CFG_ for configuration and PRG_ for timer program information.
   </ul>
 
 
@@ -5024,6 +5115,76 @@ A line ending with \ will be concatenated with the next one, so long lines
     <br>
   </ul>
 </ul>
+
+<a name="POKEYS"></a>
+<h3>POKEYS</h3>
+<ul>
+  The POKEYS module is used to control the LAN POKEYS device (<a href="http://www.poscope.com/pokeys56e">POKEYS56e</a>) which supports
+  up to 56 digital input, analog inputs, counter inputs and digital outputs.
+  Each port/pin has to be configured before it can be used.
+
+  <br>
+  <br>
+  <a name="POKEYS_define"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; POKEYS &lt;ip-address&gt; &lt;pin&gt; &lt;io-state&gt; [&lt;time in ms&gt;]</code> <br>
+    <br>
+    <code>&lt;ip-address&gt;</code> the IP address where the POKEYS device can be accessed<br>
+    <code>&lt;pin&gt;</code> the pin number which should be configured<br>
+    <code>&lt;io-state&gt;</code> the new io state of the pin <code>Obsolete(=undef) DigIn DigOut AdcIn DigInCtRise DigInCtFall ExtDigOut GetBasic </code> <br>
+    <code>&lt;time in ms&gt;</code> optional else 1000ms: cyclic update time for Input pin <br>
+
+	<br>
+    Example:
+    <ul>
+	  <code>define PoInfo   POKEYS 192.168.178.34  0 GetBasic</code><br>
+      # creates a virtual pin for getting infos about the device with the <code>get</code> command<br>
+      <code>define Pin44in  POKEYS 192.168.178.34 44 DigIn 200</code><br>
+      # creates a digitial input port on pin 44<br>
+      <code>define Pin25out POKEYS 192.168.178.34 25 DigOut</code><br>
+	  # creates a digial output port on pin 25<br>
+    </ul>
+    </ul> <br>
+
+  <a name="POKEYS_set"></a>
+  <b>Set</b> 
+  <ul>
+	<code>set &lt;name&gt; &lt;state&gt; [&lt;time in ms&gt;]</code> <br>
+	<br>
+	<code>&lt;state&gt;</code> can be <code>OFF ON OFF_PULSE ON_PULSE </code><br>
+    <code>&lt;time in ms&gt;</code> optional else 1000ms hold time for the <code>ON_PULSE OFF_PULSE</code> state<br>
+	<br>
+    Example:
+    <ul>
+	  <code>set Pin25out ON</code><br>
+      # sets Pin25out to ON (0V)<br>
+    </ul>
+  </ul><br>
+
+  <a name="POKEYS_get"></a>
+  <b>Get</b> 
+  <ul>
+	<code>get &lt;name&gt; &lt;type&gt; </code> <br>
+	<br>
+	only supported for pins of type <code>GetBasic</code><br>
+	<code>&lt;type&gt;</code> can be <code>Version DevName Serial User CPUload</code><br>
+  	<br>
+    Example:
+    <ul>
+	  <code>get PoInfo Version</code><br>
+      # gets the version of the POKEYS device<br>
+    </ul>
+  </ul><br>
+  
+  <a name="POKEYS_attr"></a>
+  <b>Attributes</b>
+  <ul>
+    todo <br>
+  </ul>
+  <br>
+</ul>
+
 <a name="VantagePro2"></a>
 <h3>VantagePro2</h3>
 <ul>
@@ -8141,7 +8302,7 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
   <a name="FHEM2FHEMdefine"></a>
   <b>Define</b>
   <ul>
-    <code>define &lt;name&gt; FHEM2FHEM &lt;host:portnr&gt; [LOG:regexp|RAW:devicename]
+    <code>define &lt;name&gt; FHEM2FHEM &lt;host:portnr&gt; [LOG:regexp|RAW:devicename] {portpassword}
     </code>
   <br>
   <br>
@@ -8174,9 +8335,10 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
     usually with the device-node "none", so it is only a dummy device.  All
     necessary attributes (e.g. <a href="#rfmode">rfmode</a> if the remote CUL
     is in HomeMatic mode) must also be set for the local device.
-
     </li>
   </ul>
+  The last parameter specifies an optional portpassword, if the remote server
+  activated <a href="#portpassword">portpassword</a>.
   <br>
   Examples:
   <ul>
@@ -8333,15 +8495,28 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
         </ul>
         You can of course use other means of base64 encoding, e.g. online
         Base64 encoders. If basicAuthMsg is set, it will be displayed in the
-        popup window when requesting the username/password.
+        popup window when requesting the username/password.<br>
+        <br>
+        If the argument of basicAuth is enclosed in {}, then it will be
+        evaluated, and the $user and $password variable will be set to the
+        values entered. If the return value is true, then the password will be
+        accepted.
+        Example:<br>
+        <code>
+        attr WEB basicAuth { "$user:$password" eq "admin:secret" }<br>
+        attr WEB basicAuth {use FritzBoxUtils;;FB_checkPw("localhost","$password") }
+        </code>
+
+
     </li><br>
 
     <a name="HTTPS"></a>
     <li>HTTPS<br>
-        use HTTPS instead of HTTP. This feature requires the perl module
+        Enable HTTPS connections. This feature requires the perl module
         IO::Socket::SSL, to be installed with cpan -i IO::Socket::SSL or
-        apt-get install libio-socket-ssl-perl; the OSX perl already has this
-        module.<br>
+        apt-get install libio-socket-ssl-perl; OSX and the FritzBox-7390
+        already have this module.<br>
+
         A local certificate has to be generated into a directory called certs,
         this directory <b>must</b> be in the <a href="#modpath">modpath</a>
         directory, at the same level as the FHEM directory.
@@ -8352,6 +8527,11 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
         </ul>
       <br><br>
     </li>
+
+    <li><a href="#allowfrom">allowfrom</a></li>
+    </li><br>
+    <li><a href="#loglevel">loglevel</a></li>
+    </li><br>
 
     <a name="stylesheetPrefix"></a>
     <li>stylesheetPrefix<br>
@@ -9051,14 +9231,14 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
     <br><br>
     Define a set of holidays. The module will try to open the file
     &lt;name&gt;.holiday in the <a href="#modpath">modpath</a>/FHEM directory.
-    If an entry in the holiday file matches the current day, then the STATE of
+    If entries in the holiday file match the current day, then the STATE of
     this holiday instance displayed in the <a href="#list">list</a> command
-    will be set to the holiday, else the state is set to the text none. Most
-    probably you'll want to query this value in some perl script: see Value() in
-    the <a href="#perl">perl</a> section or the global attribute <a
-    href="#holiday2we"> holiday2we</a>.<br>
-    The file will be reread once every night, to compute the value for the
-    current day, and by each get command (see below).<br>
+    will be set to the corresponding values, else the state is set to the text
+    none. Most probably you'll want to query this value in some perl script:
+    see Value() in the <a href="#perl">perl</a> section or the global attribute
+    <a href="#holiday2we"> holiday2we</a>.<br> The file will be reread once
+    every night, to compute the value for the current day, and by each get
+    command (see below).<br>
     <br>
 
     Holiday file definition:<br>
@@ -9418,6 +9598,98 @@ KlikAanKlikUit, NEXA, CHACON, HomeEasy UK. <br> You need to define an RFXtrx433 
   <br>
 
 </ul>
+
+<a name="telnet"></a>
+<h3>telnet</h3>
+<ul>
+  <br>
+  <a name="telnetdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; telnet &lt;portNumber&gt; [global]</code>
+    <br><br>
+
+    Listen on the TCP/IP port <code>&lt;portNumber&gt;</code> for incoming
+    connections. If the second parameter global is <b>not</b> specified,
+    the server will only listen to localhost connections.
+    <br><br>
+
+    To use IPV6, specify the portNumber as IPV6:&lt;number&gt;, in this
+    case the perl module IO::Socket:INET6 will be requested.
+    On Linux you may have to install it with cpan -i IO::Socket::INET6 or
+    apt-get libio-socket-inet6-perl; OSX and the FritzBox-7390 perl already has
+    this module.
+    <br><br>
+    Examples:
+    <ul>
+        <code>define tPort telnet 7072 global</code><br>
+        <code>attr tPort globalpasswort mySecret</code><br>
+        <code>attr tPort SSL</code><br>
+    </ul>
+    <br>
+    Note: The old global attribute port is automatically converted to a
+    telnet instance with the name telnetPort. The global allowfrom attibute is
+    lost in this conversion.
+  </ul>
+  <br>
+
+
+  <a name="telnetset"></a>
+  <b>Set</b> <ul>N/A</ul><br>
+
+  <a name="telnetget"></a>
+  <b>Get</b> <ul>N/A</ul><br>
+
+  <a name="telnetattr"></a>
+  <b>Attributes:</b>
+  <ul>
+    <li><a href="#loglevel">loglevel</a></li>
+    <br>
+
+    <a name="password"></a>
+    <li>password<br>
+        Specify a password, which has to be entered as the very first string
+        after the connection is established. If the argument is enclosed in {},
+        then it will be evaluated, and the $password variable will be set to
+        the password entered. If the return value is true, then the password
+        will be accepted. If thies parameter is specified, fhem sends telnet
+        IAC requests to supress echo while entering the password.
+        Also all returned lines are terminated with \r\n.
+        Example:<br>
+        <code>
+        attr tPort password secret<br>
+        attr tPort password {use FritzBoxUtils;;FB_checkPw("localhost","$password") }
+        </code>
+        <br><br>
+
+    <a name="globalpassword"></a>
+    <li>globalpassword<br>
+        Just like the attribute password, but a password will only required for
+        non-local connections.
+        <br><br>
+
+    <a name="SSL"></a>
+    <li>SSL<br>
+        Enable SSL encryption of the connection, see the description <a 
+        href="#HTTPS">here</a> on generating the needed SSL certificates. To
+        connect to such a port use one of the following commands:
+        <ul>
+          socat openssl:fhemhost:fhemport,verify=0 readline<br>
+          ncat --ssl fhemhost fhemport<br>
+          openssl s_client -connect fhemhost:fhemport<br>
+        </ul>
+        <br><br>
+
+    <a name="allowfrom"></a>
+    <li>allowfrom<br>
+        Regexp of allowed ip-addresses or hostnames. If set,
+        only connections from these addresses are allowed.
+        <br><br>
+
+  </ul>
+
+</ul>
+
 
 <a name="DbLog"></a>
 <h3>DbLog</h3>
