@@ -40,6 +40,7 @@ my @filelist = (
  "docs/fhem.*.png",
  "docs/.*.jpg",
  "../culfw/Devices/CUL/.*.hex",
+ "./CHANGED",
 );
 
 # Read in the file timestamps
@@ -49,6 +50,7 @@ my %filedir;
 foreach my $fspec (@filelist) {
   $fspec =~ m,^(.+)/([^/]+)$,;
   my ($dir,$pattern) = ($1, $2);
+
   opendir DH, $dir || die("Can't open $dir: $!\n");
   foreach my $file (grep { /$pattern/ && -f "$dir/$_" } readdir(DH)) {
     my @st = stat("$dir/$file");
@@ -110,14 +112,21 @@ system("mkdir -p $uploaddir2");
 
 my %filelist2 = (
  "./fhem.pl.txt"                => ".",
+ "./CHANGED"                    => ".",
  "FHEM/.*.pm"                   => "FHEM",
  "../culfw/Devices/CUL/.*.hex"  => "FHEM",
+ "webfrontend/pgm2/.*.pm\$"     => "FHEM",
  "webfrontend/pgm2/.*"          => "www/pgm2",
  "docs/commandref.html"         => "www/pgm2",
  "docs/faq.html"                => "www/pgm2",
  "docs/HOWTO.html"              => "www/pgm2",
  "docs/fhem.*.png"              => "www/pgm2",
  "docs/.*.jpg"                  => "www/pgm2",
+);
+
+# Can't make negative regexp to work, so do it with extra logic
+my %skiplist2 = (
+ "www/pgm2"  => ".pm\$",
 );
 
 # Read in the file timestamps
@@ -131,6 +140,7 @@ foreach my $fspec (keys %filelist2) {
   my $tdir = $filelist2{$fspec};
   opendir DH, $dir || die("Can't open $dir: $!\n");
   foreach my $file (grep { /$pattern/ && -f "$dir/$_" } readdir(DH)) {
+    next if($skiplist2{$tdir} && $file =~ m/$skiplist2{$tdir}/);
     my @st = stat("$dir/$file");
     my @mt = localtime($st[9]);
     $filetime2{"$tdir/$file"} = sprintf "%04d-%02d-%02d_%02d:%02d:%02d",
@@ -154,16 +164,18 @@ if(open FH, "filetimes.txt") {
 }
 
 open FH, ">filetimes.txt" || die "Can't open filetimes.txt: $!\n";
+open CTL, ">controls.txt" || die "Can't open controls.txt: $!\n";
 open FTP, ">script.txt" || die "Can't open script.txt: $!\n";
 print FTP "cd fhem/fhemupdate2\n";
-print FTP "put filetimes.txt\n";
 print FTP "pas\n";      # Without passive only 28 files can be transferred
+print FTP "put filetimes.txt\n";
+print FTP "put controls.txt\n";
 my $cnt;
 foreach my $f (sort keys %filetime2) {
   my $fn = $f;
   $fn =~ s/.txt$// if($fn =~ m/.pl.txt$/);
   print FH "$filetime2{$f} $filesize2{$f} $fn\n";
-
+  print CTL "UPD $filetime2{$f} $filesize2{$f} $fn\n";
   my $newfname = $f;
   if(!$oldtime{$f} || $oldtime{$f} ne $filetime2{$f}) {
     $f =~ m,^(.*)/([^/]*)$,;
@@ -176,6 +188,14 @@ foreach my $f (sort keys %filetime2) {
 }
 close FH;
 close FTP;
+
+if(open(ADD, "../contrib/fhemupdate.control")) {
+  while(my $l = <ADD>) {
+    print CTL $l;
+  }
+  close ADD;
+}
+close CTL;
 
 if($cnt) {
   print "FTP Upload needed for $cnt files\n";
