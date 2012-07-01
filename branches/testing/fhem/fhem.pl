@@ -195,7 +195,8 @@ $modules{Global}{AttrList} =
   "verbose:1,2,3,4,5 mseclog version nofork logdir holiday2we " .
   "autoload_undefined_devices dupTimeout latitude longitude " .
   "backupcmd backupdir backupsymlink backup_before_update " .
-  "exclude_from_update motd";
+  "exclude_from_update motd updatebranch updateserver updatepath " .
+  "updatectrlfile ";
 
 $modules{Global}{AttrFn} = "GlobalAttr";
 
@@ -368,15 +369,20 @@ $attr{global}{motd} = "$sc_text\n\n"
 $init_done = 1;
 DoTrigger("global", "INITIALIZED");
 
+$attr{global}{motd} .= "Running with root privileges."
+        if($^O !~ m/Win/ && $<==0 && $attr{global}{motd} =~ m/^$sc_text/);
 $attr{global}{motd} .=
-        "\nRestart fhem for a new check if the problem ist fixed,\n".
+        "\nRestart fhem for a new check if the problem is fixed,\n".
         "or set the global attribute motd to none to supress this message.\n"
         if($attr{global}{motd} =~ m/^$sc_text\n\n./);
 my $motd = $attr{global}{motd};
 if($motd eq "$sc_text\n\n") {
   delete($attr{global}{motd});
 } else {
-  Log 2, $motd if($motd ne "none");
+  if($motd ne "none") {
+    $motd =~ s/\n/ /g;
+    Log 2, $motd;
+  }
 }
 
 Log 0, "Server started (version $attr{global}{version}, pid $$)";

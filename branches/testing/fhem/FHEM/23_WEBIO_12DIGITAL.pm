@@ -50,10 +50,21 @@ WEBIO_12DIGITAL_Set($@)
 {
   my ($hash, @a) = @_;
 
-  return "no set value specified" if(int(@a) != 2);
-  return "Unknown argument $a[1], choose one of on offf" if($a[1] eq "?");
+  return "no set value specified" if(int(@a) < 2);
+  return "Unknown argument $a[1], choose one of on off on-for-timer" if($a[1] eq "?");
 
   my $v = $a[1];
+  my $v2= "";
+  if(defined($a[2])) { $v2=$a[2]; }
+
+  RemoveInternalTimer("WEBIO_12DIGITAL_on_timeout");
+
+  if($v eq "on-for-timer")
+  {
+	InternalTimer(gettimeofday()+$v2, "WEBIO_12DIGITAL_on_timeout",$hash, 0);
+# on-for-timer is now a on.
+	$v="on";
+  }
 
   WEBIO_12DIGITAL_execute($hash->{DEF},$v);
 
@@ -69,6 +80,21 @@ WEBIO_12DIGITAL_Set($@)
   return undef;
 
 }
+sub 
+WEBIO_12DIGITAL_on_timeout($)
+{
+  my ($hash) = @_;
+  my @a;
+
+  $a[0]=$hash->{NAME};
+  $a[1]="off"; 
+
+  WEBIO_12DIGITAL_Set($hash,@a);
+
+  return undef;
+}
+
+
 ###################################
 sub
 WEBIO_12DIGITAL_execute($@)
