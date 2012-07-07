@@ -36,7 +36,7 @@ update_Initialize($$)
 {
   my %hash = (
     Fn  => "CommandUpdate",
-    Hlp => "[experimental|stable] [<file>|changed|fhem|pgm2],update Fhem",
+    Hlp => "[development|stable] [<file>|check|fhem|pgm2],update Fhem",
   );
   $cmds{update} = \%hash;
 }
@@ -58,41 +58,41 @@ CommandUpdate($$)
 
   # set default trunk
   $BRANCH = (!defined($attr{global}{updatebranch}) ? $DISTRIB_BRANCH : uc($attr{global}{updatebranch}));
-  if ($BRANCH ne "STABLE" && $BRANCH ne "EXPERIMENTAL") {
-    $ret = "global attribute 'updatebranch': unknown keyword: '$BRANCH'. Keyword should be 'STABLE' or 'EXPERIMENTAL'";
+  if ($BRANCH ne "STABLE" && $BRANCH ne "DEVELOPMENT") {
+    $ret = "global attribute 'updatebranch': unknown keyword: '$BRANCH'. Keyword should be 'STABLE' or 'DEVELOPMENT'";
     Log 1, "update $ret";
     return "$ret";
   }
 
   if (!defined($args[0])) {
     push(@args,$BRANCH);
-  } elsif (uc($args[0]) ne "STABLE" && uc($args[0]) ne "EXPERIMENTAL") {
+  } elsif (uc($args[0]) ne "STABLE" && uc($args[0]) ne "DEVELOPMENT") {
     unshift(@args,$BRANCH);
-  } elsif (uc($args[0]) eq "STABLE" || uc($args[0]) eq "EXPERIMENTAL") {
+  } elsif (uc($args[0]) eq "STABLE" || uc($args[0]) eq "DEVELOPMENT") {
     $args[0] = uc($args[0]);
     $BRANCH = $args[0];
   }
 
   # set path for fhem.de
   my $branch = lc($BRANCH);
-  $branch = "SVN" if ($BRANCH eq "EXPERIMENTAL");
+  $branch = "SVN" if ($BRANCH eq "DEVELOPMENT");
   $srcdir = $UPDATE{path}."/".lc($branch);
 
   # check arguments
   if (defined($args[1]) && $args[1] eq "?" ||
      (int(@args) > 3 && uc($args[1]) eq "HOUSEKEEPING") ||
      (int(@args) > 2 && uc($args[2]) ne "FORCE" && 
-      (uc($args[1]) eq "CHANGED" || 
+      (uc($args[1]) eq "CHECK"   || 
        uc($args[1]) eq "FHEM"    || 
        uc($args[1]) eq "FULL"    || 
        uc($args[1]) eq "PGM2"))  ||
      (int(@args) > 2   &&
-      (uc($args[1]) ne "CHANGED" &&
+      (uc($args[1]) ne "CHECK"   &&
        uc($args[1]) ne "FHEM"    &&
        uc($args[1]) ne "FULL"    && 
        uc($args[1]) ne "PGM2"    &&
        uc($args[1]) ne "HOUSEKEEPING"))) {
-    return "Usage: update [experimental|stable] [<file>|changed|fhem|full|pgm2] [force]";
+    return "Usage: update [development|stable] [<file>|check|fhem|full|pgm2] [force]";
   }
 
   # check arguments for housekeeping
@@ -115,7 +115,7 @@ CommandUpdate($$)
   $force = 1 if (defined($args[1]) && uc($args[1]) eq "FORCE" ||
                  defined($args[2]) && uc($args[2]) eq "FORCE");
 
-  if (defined($args[1]) && uc($args[1]) eq "CHANGED") {
+  if (defined($args[1]) && uc($args[1]) eq "CHECK") {
     $ret = update_ListChanges($srcdir);
   } elsif (defined($args[1]) && uc($args[1]) eq "HOUSEKEEPING") {
     $ret = update_DoHousekeeping($update);
@@ -634,7 +634,7 @@ update_CheckFhemRelease($$)
   if (!$force &&
      ($NEW_DISTRIB_RELEASE lt $DISTRIB_RELEASE ||
      ($NEW_DISTRIB_RELEASE == $DISTRIB_RELEASE &&
-     ($DISTRIB_BRANCH eq "EXPERIMENTAL" && $NEW_DISTRIB_BRANCH ne "EXPERIMENTAL")))) {
+     ($DISTRIB_BRANCH eq "DEVELOPMENT" && $NEW_DISTRIB_BRANCH ne "DEVELOPMENT")))) {
     $ret  = "The installed version $DISTRIB_DESCRIPTION is newer than the remote\n";
     $ret .= "version $NEW_DISTRIB_DESCRIPTION.\n";
     $ret .= "A downgrade is not recommended! Your default updatebranch is '$BRANCH'.\n";
