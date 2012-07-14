@@ -36,7 +36,7 @@ update_Initialize($$)
 {
   my %hash = (
     Fn  => "CommandUpdate",
-    Hlp => "[development|stable] [<file>|check|fhem|pgm2],update Fhem",
+    Hlp => "[development|stable] [<file>|check|fhem],update Fhem",
   );
   $cmds{update} = \%hash;
 }
@@ -84,15 +84,13 @@ CommandUpdate($$)
      (int(@args) > 2 && uc($args[2]) ne "FORCE" && 
       (uc($args[1]) eq "CHECK"   || 
        uc($args[1]) eq "FHEM"    || 
-       uc($args[1]) eq "FULL"    || 
-       uc($args[1]) eq "PGM2"))  ||
+       uc($args[1]) eq "FULL"))  || 
      (int(@args) > 2   &&
       (uc($args[1]) ne "CHECK"   &&
        uc($args[1]) ne "FHEM"    &&
        uc($args[1]) ne "FULL"    && 
-       uc($args[1]) ne "PGM2"    &&
        uc($args[1]) ne "HOUSEKEEPING"))) {
-    return "Usage: update [development|stable] [<file>|check|fhem|full|pgm2] [force]";
+    return "Usage: update [development|stable] [<file>|check|fhem|full] [force]";
   }
 
   # check arguments for housekeeping
@@ -106,7 +104,6 @@ CommandUpdate($$)
         (uc($args[1]) eq "FORCE") ||
          uc($args[1]) eq "HOUSEKEEPING")) {
     $update = "FHEM";
-    $update = "PGM2" if($modules{FHEMWEB} && $modules{FHEMWEB}{LOADED});
   } else {
     $update = $args[1];
   }
@@ -192,7 +189,7 @@ update_DoUpdate(@)
   }
 
   return $ret if($fail);
-  if (uc($update) eq "FULL" || uc($update) eq "FHEM" || uc($update) eq "PGM2") {
+  if (uc($update) eq "FULL" || uc($update) eq "FHEM") {
     my $doHousekeeping = update_DoHousekeeping($update);
     $ret .= $doHousekeeping if ($doHousekeeping);
   }
@@ -213,7 +210,6 @@ update_DoHousekeeping($)
   my $ret;
 
   # parse local controlfile
-  $pack = "PGM2" if (uc($update) eq "FULL");
   my $fail;
   my $lControl_ref;
   ($fail,$lControl_ref) = update_ParseControlFile($pack,"$moddir/$UPDATE{$pack}{control}",$lControl_ref,1);
@@ -277,12 +273,11 @@ update_CheckUpdates($$$$)
   my %updateFiles = ();
 
   # select package
-  $pack = "FHEM" if (!$modules{FHEMWEB});
-  $pack = "PGM2" if ($modules{FHEMWEB} || $update eq "FULL");
+  $pack = "FHEM";
   $pack = uc($update) if ($force);
 
   # build searchstring
-  if (uc($update) ne "FULL" && uc($update) ne "FHEM" && uc($update) ne "PGM2") {
+  if (uc($update) ne "FULL" && uc($update) ne "FHEM") {
     $singleFile = 1;
     if ($update =~ m/^(\S+)\.(.*)$/) {
       $search = lc($1);
@@ -539,8 +534,7 @@ update_ListChanges($)
   my $ret = "List of new / modified files since last update:\n";
 
   # select package
-  $pack = "FHEM" if (!$modules{FHEMWEB});
-  $pack = "PGM2" if ($modules{FHEMWEB});
+  $pack = "FHEM";
 
   # get list of files
   my $controlFile = GetFileFromURL("$server/$srcdir/$UPDATE{$pack}{control}");
