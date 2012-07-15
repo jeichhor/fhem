@@ -7,6 +7,7 @@
 # Attention: This module may communicate with the OWX module,
 #            but currently not with the 1-Wire File System OWFS
 #
+# TODO: Kanalattribute ändern zur Laufzeit.
 #
 #
 # Prefixes for subroutines of this module:
@@ -16,7 +17,7 @@
 #
 # Prof. Dr. Peter A. Henning, 2012
 # 
-# Version 1.15 - June, 2012
+# Version 2.11 - July, 2012
 #   
 # Setup bus device in fhem.cfg as
 #
@@ -37,8 +38,8 @@
 # get <name> gpio  => values for channels
 #
 # set <name> interval => set period for measurement
-# set <name> output <channel-name> |ON|OFF => set value for channel (name A, B or defined channel name)
-# set <name> gpio  value => set values for channels (0 = both OFF, 1 = A ON 2 = B ON 3 = both ON)
+# set <name> output <channel-name>  ON|OFF => set value for channel (name A, B or defined channel name)
+# set <name> gpio  value => set values for channels (3 = both OFF, 1 = B ON 2 = A ON 0 = both ON)
 #
 # Additional attributes are defined in fhem.cfg, in some cases per channel, where <channel>=A,B
 # Note: attributes are read only during initialization procedure - later changes are not used.
@@ -177,12 +178,12 @@ sub OWSWITCH_Define ($$) {
   
   #-- 1-Wire ROM identifier in the form "FF.XXXXXXXXXXXX.YY"
   #   determine CRC Code - only if this is a direct interface
-  $crc = defined($hash->{IODev}->{INTERFACE}) ?  sprintf("%02x",OWX_CRC("1D.".$id."00")) : "00";
+  $crc = defined($hash->{IODev}->{INTERFACE}) ?  sprintf("%02x",OWX_CRC("3A.".$id."00")) : "00";
   
   #-- Define device internals
-  $hash->{ROM_ID}     = "1D.".$id.$crc;
+  $hash->{ROM_ID}     = "3A.".$id.$crc;
   $hash->{OW_ID}      = $id;
-  $hash->{OW_FAMILY}  = "1D";
+  $hash->{OW_FAMILY}  = "3A";
   $hash->{PRESENT}    = 0;
   $hash->{INTERVAL}   = $interval;
   
@@ -563,13 +564,9 @@ sub OWSWITCH_Set($@) {
     }else{
       return "OWSWITCH: Get with wrong IODev type $interface";
     }
-    #-- process results
-    OWSWITCH_FormatValues($hash);  
-    return undef;
-  }
  
   #-- set state
-  if( $key eq "gpio" ){
+  }elsif( $key eq "gpio" ){
     #-- check value and write to device
     return "OWSWITCH: Set with wrong value for gpio port, must be 0 <= gpio <= 3"
       if( ! ((int($value) >= 0) && (int($value) <= 3)) );
@@ -581,19 +578,15 @@ sub OWSWITCH_Set($@) {
     }else{
       return "OWSWITCH: GetValues with wrong IODev type $interface";
     }
-    
-    #-- process results
-    if( defined($ret) ){
-      return $ret;
-    } else {
-      $hash->{PRESENT} = 1; 
-      $value=OWSWITCH_FormatValues($hash);
-      #--logging
-      Log 5, $value;
-      $hash->{CHANGED}[0] = $value;
-      return $value;
-    }
   }
+  
+  #-- process results - we have to reread the device
+  $hash->{PRESENT} = 1; 
+  OWSWITCH_GetValues($hash);  
+  OWSWITCH_FormatValues($hash);  
+  Log 4, "OWSWITCH: Set $hash->{NAME} $key $value";
+  $hash->{CHANGED}[0] = $value;
+  return undef;
 }
 
 ########################################################################################

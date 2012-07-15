@@ -107,6 +107,9 @@
       <a href="#M232">M232</a> &nbsp;
       <a href="#M232Counter">M232Counter</a> &nbsp;
       <a href="#M232Voltage">M232Voltage</a> &nbsp;
+	  <a href="#MSG">MSG</a> &nbsp;
+	  <a href="#MSGFile">MSGFile</a> &nbsp;
+	  <a href="#MSGMail">MSGMail</a> &nbsp;
       <a href="#NetIO230B">NetIO230B</a> &nbsp;
       <a href="#OREGON">OREGON</a> &nbsp;
       <a href="#OWFS">OWFS</a> &nbsp;
@@ -3316,11 +3319,30 @@ A line ending with \ will be concatenated with the next one, so long lines
        </ul></li>
      <br>
 
-     <li>remotes
+      <li>remotes, pushButton
        <ul>
-         devicepair <btnNumber> hmDevice<br>
-         Pair a remote directly with a switch. The command for the switch is
-         sent out directly, the remote must be set into learning mode first.
+        * devicepair &lt;btn_no&gt; &lt;hmDevice&gt; [single|dual]<br>
+         Pair a sender device directly with a actuator. After pairing 
+		 commands sent by the remote are processed directly by the actuator. 
+
+
+		 Remote must be set into learning mode first. <br>
+		 &lt;hmDevice&gt; is the actuator's channel to be paired.<br>
+		 &lt;btn_no&gt; is the button on the remote to be paired. If 'single' 
+		 is choosen buttons are counted from 1. For 'dual' btn_no is the number
+		 of the Button-pair to be used. I.e. '3' 
+		 in dual is the 3rd button pair correcponding to button 5 and 6 in 
+		 single mode.<br>
+		 [single|dual]: this mode impacts the default behavior of the 
+		 Actuator upon using this button. E.g. a dimmer can be learned to a 
+		 single button or to a button pair. <br>
+		 'dual' (default) Button pairs two buttons to one actuator. With a 
+		 dimmer this means one button for dim-up and one for dim-down. <br>
+		 'single' uses only one button of the sender. It is useful for e.g. for
+		 simple switch actuator to toggle on/off. Nevertheless 
+		 also dimmer can be learned to only one button. <br>
+		 example: set myRemote devicepair 2 mySwitchActuator single
+
        </ul>
      <br>
 
@@ -4426,6 +4448,223 @@ A line ending with \ will be concatenated with the next one, so long lines
 
 </ul>
 
+<a name="MSG"></a>
+<h3>MSG</h3>
+<ul>
+The MSG device is the backend device for all the message handling (I/O-engine).
+Under normal conditions only one MSG device is needed to serve multiple frontend
+message devices like file or email.
+<br><br>
+<a name="MSGdefine"></a>
+<b>Define</b>
+<ul>
+<code>define &lt;name&gt; MSG </code><br><br>
+Specifies the MSG device. A single MSG device could serve multiple MSG frontends.
+But, for special conditions there could be defined more than one MSG device.
+</ul>
+<br>
+<a name="MSGset"></a>
+<b>Set</b>
+<ul>
+<code>set &lt;name&gt; send|write &lt;devicename&gt;</code><br><br>
+</ul>
+Notes:
+<ul>
+To send the data, both send or write could be used.<br>
+	The devicename is the name of a frontenddevice previously
+	defined. Based on the type of the frontend device, the MSG device
+	will send out the lines of data.
+	<br>
+	Frontend devices are available for:<br>
+		<ul><li><a href="#MSGFile">File</a></li>
+		<li><a href="#MSGMail">EMail with SSL Authentification</a></li></ul>
+	For details about this devices, please review the device-definitions.<br>
+	After sending/writing the data, the data stills exists with the
+	frontend device, MSG do not delete/purge any data, this must be done
+	by the frontend device.
+	<br><br>
+		Examples:
+		<ul>
+			<code>define myMsg MSG</code>
+		</ul>
+</ul>
+<a name="MSGVattr"></a>
+<b>Attributes</b>
+<ul>
+    <li><a href="#IODev">IODev</a></li>
+    <li><a href="#dummy">dummy</a></li>
+    <li><a href="#ignore">ignore</a></li>
+    <li><a href="#loglevel">loglevel</a></li>
+    <li><a href="#eventMap">eventMap</a></li><br>
+  </ul>
+</ul>
+<br><br>
+<a name="MSGFile"></a>
+<h3>MSGFile</h3>	
+<ul>
+		The MSGFile device is a frontend device for message handling.
+		With a MSGFile device data is written to disk (or other media).
+		Multiple MSGFile devices could be defined.
+		To write the data to disk, a MSG device is necessary.
+		A MSGFile device needs the operating systems rights to write to the filesystem.
+		To set the rights for a directory, please use OS related commands.
+<br><br>
+	<a name="#MSGFileDefine"></a> 
+	<b>Define</b>
+	<ul><br>
+		<code>define &lt;name&gt; MSGFile &lt;filename&gt;</code><br><br>
+		Specifies the MSGFile device. At definition the message counter is set to 0.
+		A filename must be specified at definition.
+	</ul>
+			<br>
+		Examples:
+		<ul>
+			<code>define myFile MSGFile</code>
+		</ul><br>
+<a name="#MSGFileSet"></a>
+<b>Set</b><br>
+<ul><code>set &lt;name&gt; add|clear|list [text]</code><br>
+	Set is used to manipulate the message buffer of the device. The message
+	buffer is an array of lines of data, stored serial based on the incoming
+	time into the buffer. Lines of data inside the buffer could not be deleted
+	anymore, except of flashing the whole buffer.<br>
+	<ul><b>add</b><br> to add lines of data to the message buffer. All data behind
+	"add" will be interpreted as text message. To add a carriage return to the data,
+	please use the CR attribute.
+	</ul>
+	<ul><b>clear</b><br> to flash the message buffer and set the line counter to 0.
+		All the lines of data are deleted and the buffer is flushed.</ul>
+	<ul><b>list</b><br> to list the message buffer.</ul><br>
+		</ul><br>
+		Examples:
+		<ul>
+			<code>set myFile add Dies ist Textzeile 1</code><br>
+			<code>set myFile add Dies ist Textzeile 2</code><br>
+			<code>set myFile clear</code><br><br>
+			Full working example to write two lines of data to a file:<br>
+			<code>define myMsg MSG</code><br>
+			<code>define myFile MSGFile /tmp/fhemtest.txt</code><br>
+			<code>attr myFile filemode append</code><br>
+			<code>set myFile add Textzeile 1</code><br>
+			<code>set myFile add Textzeile 2</code><br>
+			<code>set myMsg write myFile</code><br>
+			<code>set myFile clear</code><br>
+		</ul><br>
+		<a name="MSGFileVattr"></a>
+<b>Attributes</b>
+<ul>
+    <li><a href="MSGFilefilename">filename</a><br>
+		sets the filename, must be a fully qualified filename.
+		FHEM must have the rights to write this file to the directory</li>
+    <li><a href="MSGFilefilemode">filemode</a><br>
+		sets the filemode, valid are "new" or "append"<br>
+			new creates a new, empty file and writes the data to this file. Existing files are cleared, the data is lost!<br>
+			append uses, if available, an existing file and writes the
+			buffer data to the end of the file. If the file do not exist, it will
+			be created</li>
+    <li><a href="MSGFilenameCR">CR</a><br>
+		set the option to write a carriage return at the end of the line.
+		CR could be set to 0 or 1, 1 enables this feature</li>
+    <li><a href="#loglevel">loglevel</a></li>
+  </ul>
+</ul>
+		
+<a name="MSGMail"></a>
+<h3>MSGMail</h3>	
+<ul>
+		The MSGMail device is a frontend device for mail message handling.
+		With a MSGMaildevice data is fowarded to a mail provider and send to a recipent.
+		Multiple MSGMail devices could be defined.
+		MSGMail supports by the moment only mail provider, which uses SSL secured connection
+		like Googlemail, GMX, Yahoo or 1und1 for example.
+		To send an email, a MSG device is necessary.<br>
+		<b>MAIL::Lite</b> and <b>Net::SMTP::SSL</b> from CPAN is needed to use MSGMail!!
+<br><br>
+	<a name="#MSGMailDefine"></a>
+	<b>Define</b>
+	<ul><br>
+		<code>define &lt;name&gt; MSGMail &lt;from&gt; &lt;to&gt; &lt;smtphost&gt; &lt;authfile&gt;</code><br><br>
+		Specifies the MSGMail device. At definition the message counter is set to 0.
+		From, To, SMTPHost and the authfile (see attributes below) need to be defined
+		at definition time.
+	</ul>
+			<br>
+		Examples:
+		<ul>
+			<code>define myMail MSGMail from@address.com to@address.com smtp.provider.host /etc/msgauthfile</code>
+		</ul><br>
+<a name="#MSGMailSet"></a>
+<b>Set</b><br>
+<ul><code>set &lt;name&gt; add|clear|list [text]</code><br>
+	Set is used to manipulate the message buffer of the device. The message
+	buffer is an array of lines of data, stored serial based on the incoming
+	time into the buffer. Lines of data inside the buffer could not be deleted
+	anymore, except of flashing the whole buffer.<br>
+	<ul><b>add</b><br> to add lines of data to the message buffer. All data behind
+	"add" will be interpreted as text message. To add a carriage return to the data,
+	please use the CR attribute.
+	</ul>
+	<ul><b>clear</b><br> to flash the message buffer and set the line counter to 0.
+		All the lines of data are deleted and the buffer is flushed.</ul>
+	<ul><b>list</b><br> to list the message buffer.<br></ul><br>
+		<br>
+		Examples:
+		<ul>
+			<code>set myMail add Dies ist Textzeile 1</code><br>
+			<code>set myMail add Dies ist Textzeile 2</code><br>
+			<code>set myMail clear</code><br><br>
+			Full working example to send two lines of data to a recipent:<br>
+			<code>define myMsg MSG</code><br>
+			<code>define myMail MSGMail donald.duck@entenhausen.com dagobert.duck@duck-banking.com smtp.entenhausen.net /etc/fhem/msgmailauth</code><br>
+			<code>attr myMail smtpport 9999</code><br>
+			<code>attr myMail subject i need more money</code><br>
+			<code>attr myMail CR 0</code><br>
+			<code>set myMail add Please send me </code><br>
+			<code>set myMail add 1.000.000 Taler</code><br>
+			<code>set myMsg send myMail</code><br>
+			<code>set myMail clear</code><br>
+		</ul><br>
+		<a name="MSGMailVattr"></a>
+<b>Attributes</b>
+<ul>
+	Almost all of these attributes are not optional, most of them could set at definition.<br>
+    <li><a href="MSGMailFrom">from</a><br>
+		sets the mail address of the sender</li>
+    <li><a href="MSGMailTo">to</a><br>
+		sets the mail address of the recipent</li>
+    <li><a href="MSGMailsmtphost">smtphost</a><br>
+		sets the name of the smtphost, for example for GMX
+		you could use mail.gmx.net or for Googlemail the smtphost is
+		smtp.googlemail.com</li>
+    <li><a href="MSGMailsmtphost">smtpport</a> (optional)<br>
+		sets the port of the smtphost, for example for GMX
+		or for Googlemail the smtport is 465, which is also
+		the default and do not need to be set</li>
+    <li><a href="MSGMailsubject">subject</a> (optional)<br>
+		sets the subject of this email. Per default the subject is set to "FHEM"<br>
+		</li>
+    <li><a href="MSGMailauthfile">authfile</a><br>
+		sets the authfile for the SSL connection to the SMTP host<br>
+		the authfile is a simple textfile with the userid in line 1 and
+		the password in line 2.<br>
+		Example:<br>
+		<code>123user45</code><br>
+		<code>strenggeheim</code><br>
+		It is a good behaviour to protect this data and put the file, for
+		example into the /etc directory and set the rights to 440
+		(chmod 440 /etc/msgmailauthfile), so that not everyone could see the contents
+		of the file. FHEM must have access to this file to read the userid and password.
+		<br>
+		</li>
+    <li><a href="MSGFilenameCR">CR</a><br>
+		set the option to write a carriage return at the end of the line.
+		CR could be set to 0 or 1, 1 enables this feature.
+		Per default this attribute is enabled</li>
+    <li><a href="#loglevel">loglevel</a></li>
+  </ul>
+</ul>		
+
+
 <a name="LUXTRONIK2"></a>
 <h3>LUXTRONIK2</h3>
 <ul>
@@ -5461,8 +5700,7 @@ Attributes:<br>
   The InterTechno 433MHZ protocol is used by a wide range of devices, which are either of
   the sender/sensor category or the receiver/actuator category. As we right now are only
   able to SEND InterTechno commands, but CAN'T receive them, this module at the moment
-  supports just switches devices like switches, dimmers, etc. through an an
-  <a href="#CUL">CUL</a> device, so this must be defined first.
+  supports just  devices like switches, dimmers, etc. through an <a href="#CUL">CUL</a> device, so this must be defined first.
 
   <br><br>
 
@@ -5471,6 +5709,8 @@ Attributes:<br>
   <ul>
     <code>define &lt;name&gt; IT &lt;housecode&gt; &lt;on-code&gt; &lt;off-code&gt;
     [&lt;dimup-code&gt;] [&lt;dimdown-code&gt;] </code>
+    <br>or<br>
+    <code>define &lt;name&gt; IT &lt;ITRotarySwitches|FLS100RotarySwitches&gt; </code>
     <br><br>
 
    The value of housecode is a 10-digit InterTechno Code, consisting of 0/1/F as it is
@@ -5480,7 +5720,15 @@ Attributes:<br>
    different bit-codes you can specifiy here the 2-digit code for off/on/dimup/dimdown
    in the same form: 0/1/F.
 	<br>
-
+   The value of ITRotarySwitches consist of the value of the alpha switch A-P and
+   the numeric switch 1-16 as set on the intertechno device. E.g. A1 or G12.
+<br>
+   The value of FLS100RotarySwitches consist of the value of the I,II,II,IV switch
+   and the numeric 1,2,3,4 swicht. E.g. I2 or IV4.
+<br>
+   The value of ITRotarySwitches and FLS100RotarySwitches is internaly translated
+   into a houscode value.
+<br>
    <ul>
    <li><code>&lt;housecode&gt;</code> is a 10 digit tri-state number (0/1/F) depending on
 	 your device setting (see list below).</li>
@@ -5500,11 +5748,15 @@ Attributes:<br>
       <code>define lamp IT 01FF010101 11 00 01 10</code><br>
       <code>define roll1 IT 111111111F 11 00 01 10</code><br>
       <code>define otherlamp IT 000000000F 11 10 00 00</code><br>
-      <code>define otherroll1 IT FFFFFFF00F 11 10</code>
+      <code>define otherroll1 IT FFFFFFF00F 11 10</code><br>
+      <code>define itswitch1 IT A1</code><br>
+      <code>define lamp IT J10</code><br>
+      <code>define flsswitch1 IT IV1</code><br>
+      <code>define lamp IT II2</code>
     </ul>
   </ul>
   <br>
-
+  
   <a name="ITset"></a>
   <b>Set </b>
   <ul>
@@ -6012,9 +6264,12 @@ Attributes:<br>
           observe the log file.</li>
       </ul><br><br>
 
-      Neither apply the rules outlined in the <a href="#perl">documentation of perl specials</a>
+      <!--Neither apply the rules outlined in the <a href="#perl">documentation of perl specials</a>
       for the <code>&lt;perl command&gt</code> in the postprocessor definitions nor can it contain macros.
-      This is to avoid undesired side effects from e.g. doubling of semicolons.<br><br>
+      This is to avoid undesired side effects from e.g. doubling of semicolons.<br><br>-->
+      The rules outlined in the <a href="#perl">documentation of perl specials</a>
+      for the <code>&lt;perl command&gt</code> in the postprocessor definitions apply.
+      <b>Note:</b> Beware of undesired side effects from e.g. doubling of semicolon!
 
       The <code>perl command</code> acts on <code>$_</code>. The result of the perl command is the
       final result of the get or set command.
@@ -6132,7 +6387,7 @@ Attributes:<br>
         <code>
                 params pinmask<br>
                 set on cmd {"io set ddr 2 ff\nioset port 2 0%pinmask\nwait 1000\nio set port 2 00"}<br>
-		set on postproc {s/OK;OK;OK;OK/success/; "$_" eq "success" ? "ok" : "error"; }<br>
+		set on postproc {s/^OK\nOK\nOK\nOK$/success/; "$_" eq "success" ? "ok" : "error"; }<br>
         </code>
         <br>
         In the fhem configuration file or on the fhem command line we do the following:<br><br>
@@ -6149,8 +6404,8 @@ Attributes:<br>
         evaluates this to a literal string which is send as a plain ethersex command to the AVR-NET-IO line by line.
         <br>
 	For any of the four plain ethersex commands, the AVR-NET-IO returns the string <code>OK</code>. They are
-	concatenated and separated by semicolons. The postprocessor takes the result from <code>$_</code>,
-	substitutes it by the string <code>success</code> if it is <code>OK;OK;OK;OK</code>, and then either
+	concatenated and separated by line breaks (\n). The postprocessor takes the result from <code>$_</code>,
+	substitutes it by the string <code>success</code> if it is <code>OK\nOK\nOK\nOK</code>, and then either
 	returns the string <code>ok</code> or the string <code>error</code>.
 
    </ul>

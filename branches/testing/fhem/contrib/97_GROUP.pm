@@ -1,13 +1,9 @@
 ################################################################################
 # 97 GROUP
 # Feedback: http://groups.google.com/group/fhem-users
-# Logging to RRDs
-# Autor: a[PUNKT]r[BEI]oo2p[PUNKT]net
-# Stand: 31.03.2010
-# Version: 1.1.0
-# Update 08/2010
-# Support for New-Style-Sheets div=menu div=content
-# Added SpecialReading DNW
+# Autor: Axel Rieger fhem[bei]anax.info
+# Stand: 05.07.2012
+# Version: 1.2
 ################################################################################
 # Usage:
 # define <New-Group-Name> GROUP <CATEGORY>
@@ -142,7 +138,7 @@ sub GRP_CGI()
   $ret_html .= "<head>\n";
   $ret_html .= &GRP_CGI_CSS();
   $ret_html .= "<title>FHEM GROUPS<\/title>\n";
-  $ret_html .= "<link href=\"$FW_ME/style.css\" rel=\"stylesheet\"/>\n";
+  $ret_html .= "<link href=\"$FW_ME/darkstyle.css\" rel=\"stylesheet\"/>\n";
   $ret_html .= "<\/head>\n";
   $ret_html .= "<body>\n";
   # DIV HDR
@@ -161,8 +157,9 @@ sub GRP_CGI_CSS() {
   my $css;
   $css   =  "<style type=\"text/css\"><!--\n";
   $css .= "\#left {float: left; width: 15%; height:100%;}\n";
-  $css .= "table.GROUP { border:thin solid; background: #E0E0E0; text-align:left;}\n";
-  $css .= "table.GROUP tr.odd { background: #F0F0F0;}\n";
+  # $css .= "table.GROUP { border:thin solid; background: #E0E0E0; text-align:left;}\n";
+  $css .= "table.GROUP { border:thin solid; text-align:left;}\n";
+  # $css .= "table.GROUP tr.odd { background: #F0F0F0;}\n";
   $css .= "table.GROUP td {nowrap;}";
   $css .= "\/\/--><\/style>";
   # TEST
@@ -204,7 +201,8 @@ sub GRP_CGI_LEFT(){
   $rh .= "</table><br>\n";
   #SHOWLEFT
   if(defined($modules{GROUP}{conf}{SHOWLEFT})){
-    $rh .= "<table class=\"room\">\n";
+    # $rh .= "<table class=\"room\">\n";
+    $rh .= "<table id=\"room\">\n";
     foreach my $g (sort keys %{$modules{GROUP}{conf}{SHOWLEFT}}){
       #Tabelle
       $rh .= "<tr><th>$g</th><th></th></tr>\n";

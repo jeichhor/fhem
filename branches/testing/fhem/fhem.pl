@@ -54,6 +54,7 @@ sub CommandChain($$);
 sub CheckDuplicate($$);
 sub DoTrigger($$);
 sub Dispatch($$$);
+sub EventMapAsList($);
 sub FmtDateTime($);
 sub FmtTime($);
 sub GetLogLevel(@);
@@ -80,6 +81,7 @@ sub devspec2array($);
 sub doGlobalDef($);
 sub fhem($);
 sub fhz($);
+sub getAllSets($);
 sub IsDummy($);
 sub IsIgnored($);
 sub setGlobalAttrBeforeFork($);
@@ -195,8 +197,7 @@ $modules{Global}{AttrList} =
   "verbose:1,2,3,4,5 mseclog version nofork logdir holiday2we " .
   "autoload_undefined_devices dupTimeout latitude longitude " .
   "backupcmd backupdir backupsymlink backup_before_update " .
-  "exclude_from_update motd updatebranch updateserver updatepath " .
-  "updatectrlfile ";
+  "exclude_from_update motd updatebranch ";
 
 $modules{Global}{AttrFn} = "GlobalAttr";
 
@@ -440,7 +441,8 @@ while (1) {
   # reported by select, but is used by unix too, to check if the device is
   # attached again.
   foreach my $p (keys %selectlist) {
-    next if(!$selectlist{$p});                  # due to rereadcfg / delete
+    next if(!$selectlist{$p} || !$selectlist{$p}{NAME}); # due to rereadcfg/del
+
     CallFn($selectlist{$p}{NAME}, "ReadFn", $selectlist{$p})
       if(vec($rout, $selectlist{$p}{FD}, 1));
   }
@@ -1201,7 +1203,9 @@ CommandDefine($$)
     }
   }
 
-  $m = LoadModule($m);
+  my $newm = LoadModule($m);
+  return "Cannot load module $m" if($newm eq "UNDEFINED");
+  $m = $newm;
 
   if(!$modules{$m} || !$modules{$m}{DefFn}) {
     my @m = grep { $modules{$_}{DefFn} || !$modules{$_}{LOADED} }
@@ -1575,6 +1579,14 @@ getAllSets($)
   my $a2 = CommandSet(undef, "$d ?");
   $a2 =~ s/.*choose one of //;
   $a2 = "" if($a2 =~ /^No set implemented for/);
+
+  my $em = AttrVal($d, "eventMap", undef);
+  if($em) {
+    $em = join(" ", grep { !/ / }
+                    map { $_ =~ s/.*://s; $_ } 
+                    EventMapAsList($em));
+    $a2 = "$em $a2";
+  }
   return $a2;
 }
 
@@ -1611,6 +1623,11 @@ GlobalAttr($$)
 
     opendir(DH, $modpath) || return "Can't read $modpath: $!";
     push @INC, $modpath if(!grep(/$modpath/, @INC));
+    eval { 
+      use vars qw($DISTRIB_DESCRIPTION);
+      require "FhemUtils/release.pm";
+      $attr{global}{version} = "$DISTRIB_DESCRIPTION, $cvsid";
+    };
     my $counter = 0;
 
     foreach my $m (sort readdir(DH)) {
@@ -1732,7 +1749,6 @@ CommandSetstate($$)
   my @a = split(" ", $param, 2);
   return "Usage: setstate <name> <state>\n$namedef" if(@a != 2);
 
-
   my @rets;
   foreach my $sdev (devspec2array($a[0])) {
     if(!defined($defs{$sdev})) {
@@ -1746,7 +1762,8 @@ CommandSetstate($$)
     if($a[1] =~ m/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) +([^ ].*)$/) {
       my ($tim, $nameval) =  ($1, $2);
       my ($sname, $sval) = split(" ", $nameval, 2);
-      (undef, $sval) = ReplaceEventMap($d, [$d, $sval], 0) if($attr{$d}{eventMap});
+      (undef, $sval) = ReplaceEventMap($sdev, [$sdev, $sval], 0)
+                                if($attr{$sdev}{eventMap});
       my $ret = CallFn($sdev, "StateFn", $d, $tim, $sname, $sval);
       if($ret) {
         push @rets, $ret;
@@ -1765,8 +1782,15 @@ CommandSetstate($$)
 
       # This time is not the correct one, but we do not store a timestamp for
       # this reading.
-      $oldvalue{$sdev}{TIME} = TimeNow();
+      my $tn = TimeNow();
+      $oldvalue{$sdev}{TIME} = $tn;
       $oldvalue{$sdev}{VAL} = $d->{STATE};
+
+      my $ret = CallFn($sdev, "StateFn", $d, $tn, "STATE", $a[1]);
+      if($ret) {
+        push @rets, $ret;
+        next;
+      }
 
     }
   }
@@ -2150,7 +2174,7 @@ DoTrigger($$)
         my $re = $inform{$c}{regexp};
         for(my $i = 0; $i < $max; $i++) {
           my $state = $defs{$dev}{CHANGED}[$i];
-          next if($re && $state !~ m/$re/);
+          next if($re && !($dev =~ m/$re/ || "$dev:$state" =~ m/$re/));
           syswrite($defs{$c}{CD},
             ($inform{$c}{type} eq "timer" ? "$tn " : "") .
             "$defs{$dev}{TYPE} $dev $state\n");
@@ -2227,7 +2251,6 @@ doGlobalDef($)
   CommandAttr(undef, "global verbose 3");
   CommandAttr(undef, "global configfile $arg");
   CommandAttr(undef, "global logfile -");
-  CommandAttr(undef, "global version =VERS= from =DATE= ($cvsid)");
 }
 
 #####################################
@@ -2499,25 +2522,34 @@ addToAttrList($)
   $attr{global}{userattr} = join(" ", sort keys %hash);
 }
 
-# $dir: 0 = User to Fhem (i.e. set), 1 = Fhem to User (i.e trigger)
 sub
-ReplaceEventMap($$$)
+EventMapAsList($)
 {
-  my ($dev, $str, $dir) = @_;
-  my $em = $attr{$dev}{eventMap};
-  return $str if(!$em);
-  my $dname = shift @{$str} if(!$dir);
-
+  my ($em) = @_;
   my $sc = " ";               # Split character
   my $fc = substr($em, 0, 1); # First character of the eventMap
   if($fc eq "," || $fc eq "/") {
     $sc = $fc;
     $em = substr($em, 1);
   }
+  return split($sc, $em);
+}
+
+#######################
+# $dir: 0 = User to Fhem (i.e. set), 1 = Fhem to User (i.e trigger)
+sub
+ReplaceEventMap($$$)
+{
+  my ($dev, $str, $dir) = @_;
+  my $em = $attr{$dev}{eventMap};
+  return $str    if($dir && !$em);
+  return @{$str} if(!$dir && (!$em || $str->[1] eq "?"));
+  my $dname = shift @{$str} if(!$dir);
 
   my $nstr = join(" ", @{$str}) if(!$dir);
   my $changed;
-  foreach my $rv (split($sc, $em)) {
+  my @emList = EventMapAsList($em);
+  foreach my $rv (@emList) {
     my ($re, $val) = split(":", $rv, 2); # Real-Event-Regexp:GivenName
     next if(!defined($val));
     if($dir) {  # event -> GivenName
@@ -2928,17 +2960,6 @@ sub
 fhemTimeLocal($$$$$$) {
     my $t= fhemTimeGm($_[0],$_[1],$_[2],$_[3],$_[4],$_[5]);
     return $t-fhemTzOffset($t);
-}
-
-sub
-secSince2000()
-{
-  # Calculate the local time in seconds from 2000.
-  my $t = time();
-  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($t);
-  $t -= 946684800; # seconds between 01.01.2000, 00:00 and THE EPOCH (1970)
-  $t -= fhemTzOffset($t);
-  return $t;
 }
 
 1;

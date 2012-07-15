@@ -185,7 +185,7 @@ EnOcean_Set($@)
 
     }
 
-    select(undef, undef, undef, 0.1) if($i < int(@a)-1);
+    select(undef, undef, undef, 0.1);
   }
 
   my $cmd = join(" ", @a);
@@ -314,17 +314,18 @@ EnOcean_Parse($$)
       }
 
     } elsif($st eq "SR04") {
-      my ($fspeed, $temp, $present);
+      my ($fspeed, $temp, $present, $solltemp);
       $fspeed = 3;
       $fspeed = 2      if($db_3 >= 145);
       $fspeed = 1      if($db_3 >= 165);
       $fspeed = 0      if($db_3 >= 190);
       $fspeed = "Auto" if($db_3 >= 210);
-      $temp   = sprintf("%0.1f", $db_1/6.375);      # 40..0
+      $temp   = sprintf("%0.1f", 40-$db_1/6.375);      # 40..0
       $present= $db_0&0x1 ? "no" : "yes";
+      $solltemp= sprintf("%0.1f", $db_2/6.375);
 
       push @event, "3:state:temperature $temp";
-      push @event, "3:set_point:$db_3";
+      push @event, "3:set_point: $solltemp";
       push @event, "3:fan:$fspeed";
       push @event, "3:present:$present" if($present eq "yes");
       push @event, "3:learnBtn:on" if(!($db_0&0x8));
