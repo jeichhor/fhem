@@ -14,6 +14,8 @@ cd var
 tar zxf fhem.tar.gz
 rm -rf fhem/FHEM
 mkdir fhem/FHEM
+mkdir fhem/docs
+mkdir fhem/www
 cd ..
 
 cp install var
@@ -26,24 +28,18 @@ rm -rf $fw
 tar zxf ../../$fw.tar.gz
 cd $fw
 cp fhem.pl ../var/fhem
-cp FHEM/*\
-        webfrontend/pgm2/*\
-        docs/*.html\
-        docs/fhem.png\
-        docs/*.jpg\
-        ../var/fhem/FHEM
+cp -r FHEM/* ../var/fhem/FHEM
+cp docs/*.html ../var/fhem/docs
+cp docs/fhem.png ../var/fhem/docs
+cp docs/*.jpg ../var/fhem/docs
+cp -r www/* ../var/fhem/www
+cp examples/sample_pgm2 ../var/fhem/fhem.cfg
 
-cd examples
-for i in *; do
-   cp -r $i ../../var/fhem/FHEM/example.$i
-done
-cd ../..
+cd ..
 rm -rf $fw
-
 
 echo Packing again
 cd var/fhem
-cp FHEM/example.sample_pgm2 fhem.cfg
 perl -pi -e 's,/tmp,./log,g' fhem.cfg
 
 cd ..

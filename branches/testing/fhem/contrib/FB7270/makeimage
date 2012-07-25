@@ -11,6 +11,11 @@ rm -rf var
 echo Extracting the fritzbox template
 unzip -qo ../../priv/fritzbox7270_template.zip
 
+rm -rf fhem/FHEM
+mkdir fhem/FHEM
+mkdir fhem/docs
+mkdir fhem/www
+
 cp fhemcmd.sh fhem/FHEM
 cp startfhem fhem
 
@@ -19,24 +24,18 @@ rm -rf $fw
 tar zxf ../../$fw.tar.gz
 cd $fw
 cp fhem.pl ../fhem
-cp FHEM/*\
-        webfrontend/pgm2/*\
-        docs/*.html\
-        docs/fhem.png\
-        docs/*.jpg\
-        ../fhem/FHEM
+cp -r FHEM/* ../fhem/FHEM
+cp docs/*.html ../fhem/docs
+cp docs/fhem.png ../fhem/docs
+cp docs/*.jpg ../fhem/docs
+cp -r www/* ../fhem/www
+cp examples/sample_pgm2 ../fhem/fhem.cfg
 
-cd examples
-for i in *; do
-   cp -r $i ../../fhem/FHEM/example.$i
-done
-cd ../..
+cd ..
 rm -rf $fw
-
 
 echo Packing again
 cd fhem
-cp FHEM/example.sample_pgm2 fhem.cfg
 perl -pi -e 's,/tmp,./log,g' fhem.cfg
 
 cd ..
