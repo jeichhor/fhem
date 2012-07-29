@@ -15,7 +15,7 @@ use warnings;
 use Time::HiRes qw(gettimeofday);
 
 my $UseWeatherGoogle= 0; # if you want Weather:Google back please set this to 1 and uncomment below.
-#  use Weather::Google;
+##  use Weather::Google;
 
 # taken from Daniel "Possum" LeWarne's Google::Weather module
 # http://cpansearch.perl.org/src/POSSUM/Weather-Google-0.05/lib/Weather/Google.pm
@@ -307,7 +307,7 @@ WeatherIconIMGTag($$$) {
   my ($icon,$uselocal,$isday)= @_;
 
   my $url;
-  my $style;
+  my $style= "";
   
   if($uselocal) {
     # strip off path and extension
@@ -322,7 +322,7 @@ WeatherIconIMGTag($$$) {
     $url= "fhem/icons/$icon";
     $style= " height=".SIZE." width=".SIZE;
   } else {
-    $icon= GOOGLEURL . $icon unless($uselocal);
+    $url= GOOGLEURL . $icon;
   }
 
   return "<img src=\"$url\"$style>";
@@ -334,7 +334,7 @@ WeatherIconIMGTag($$$) {
 sub
 WeatherAsHtml($)
 {
-  my $uselocal= 1;
+  my $uselocal= 0;
 
   my ($d) = @_;
   $d = "<none>" if(!$d);
@@ -370,65 +370,4 @@ WeatherAsHtml($)
 #####################################
 
 
-# sub
-# WeatherAsHtmlLocal()
-# {
-#   my ($d, $source) = @_;
-#   $d = "<none>" if(!$d);
-#   return "$d is not a Weather instance<br>"
-#         if(!$defs{$d} || $defs{$d}{TYPE} ne "Weather");
-#
-#   my $ret = "<table class='weather'>";
-#   $ret .= sprintf('<tr><td colspan=2 class="weather_cityname">%s</td></tr>'."\n",
-#         ReadingsVal($d, "city", ""));
-#
-#   my $icon = ReadingsVal($d, "icon", "na.png");
-#   $icon =~ s,/ig/images/weather(.*)\.gif,$1\.png, if ($imgHome =~ m/fhem/i);
-#   ### check if _night-icon should be used. If sunrise is installed, use isday(), otherweise night from 7pm til 6am
-#   my $isnight;
-#   if(exists &isday) {
-#                 $isnight = !isday();
-#         } else {
-#                 $isnight = ($hour > 18 || $hour < 7);
-#   }
-#   ###check if night-icon exists. If so, use it.
-#   if ($isnight) {
-#                 my $nighticon = $icon;
-#                 $nighticon =~ s,.png,_night.png,;
-#                 my $checknighticon = AttrVal("global", "modpath", "") . $imgHome . $nighticon;
-#                 $checknighticon =~ s,fhem\/icons\/,FHEM\/,;
-#                 Log 1, "checknighticon: $checknighticon   --- ".((-f $checknighticon ) ? "existiert" : "existiert nicht");
-#                 $icon = $nighticon if(-f $checknighticon);
-#   }
-#   ###Print current day
-# #  Log 1, "Icon0: $imgHome  $icon";
-#    $ret .= sprintf('<tr><td colspan=2 class="weathericon_act"><img src="%s%s" class="weathericon_act"></tr><tr><td colspan=2 class="weather_act"><span class="weathertemp_act">%s °C</span><br><span class="weathertext_act"><a href="'."$FW_ME?detail=weblink_$d".'">Aktuell: %s</a><br>Feuchtigkeit: %s&#037<br>%s</span></td></tr>'."\n",
-#         $imgHome, $icon,
-#         ReadingsVal($d, "temp_c", ""),
-#         ReadingsVal($d, "condition", ""),
-#         ReadingsVal($d, "humidity", ""),
-#         ReadingsVal($d, "wind_condition", ""));
-#   ###Print 4 day forecast
-#   for(my $i=1; $i<=4; $i++) {
-#     my $icon = ReadingsVal($d, "fc${i}_icon", "na.png");
-#         if ($imgHome =~ m/fhem/i) {
-#                 $icon =~ s,/ig/images/weather(.*)\.gif,$1\.png,  ;
-#         }
-#     my $dayname = ReadingsVal($d, "fc${i}_day_of_week", "");
-#     $dayname = "Heute" if($i==1);
-#     $dayname = "Morgen" if($i==2);
-#
-# #       Log 1, "Icon$i: $imgHome  $icon";
-#     $ret .= sprintf('<tr><td class="weathericon"><img src="%s%s" class="weathericon"></td><td class="weathertext"><span class="weather_dayname">%s:</span><br>%s<br>Min: %s°C | Max: %s°C</td></tr>'."\n",
-#         $imgHome, $icon,
-#         $dayname,
-#         ReadingsVal($d, "fc${i}_condition", ""),
-#         ReadingsVal($d, "fc${i}_low_c", ""), ReadingsVal($d, "fc${i}_high_c", ""));
-#   }
-#
-#   $ret .= "</table>";
-#   return $ret;
-#
-#
-# }
 1;
