@@ -215,12 +215,63 @@ update_DoHousekeeping($)
   ($fail,$lControl_ref) = update_ParseControlFile($pack,"$moddir/$UPDATE{$pack}{control}",$lControl_ref,1);
   return "$fail\nHousekeeping canceled..." if ($fail);
 
+
   my %lControl = %$lControl_ref;
+
+  # first run: create directories
   foreach my $f (sort keys %{$lControl{$pack}}) {
     my $lCtrl = $lControl{$pack}{$f}{ctrl};
     my $str;
     next if ($f =~ m/.hex$/);  # skip firmware files
-    next if ($lCtrl ne "DEL" && $lCtrl ne "MOV");
+    next if ($lCtrl ne "DIR");
+
+    if ($lCtrl eq "DIR") {
+      $str = update_CleanUpLocalFiles($lCtrl,"$f","");
+      $cleanup .= "==> $str\n";
+      Log 1, "update $str";
+    }
+  }
+
+  # second run: move named files
+  foreach my $f (sort keys %{$lControl{$pack}}) {
+    my $lCtrl = $lControl{$pack}{$f}{ctrl};
+    my $str;
+    next if ($f =~ m/.hex$/);  # skip firmware files
+    next if ($lCtrl ne "MOV");
+
+    if ($lCtrl eq "MOV" && $f !~ /\*/) {
+      $str = update_CleanUpLocalFiles($lCtrl,"$modpath/$f","$modpath/$lControl{$pack}{$f}{move}");
+      $cleanup .= "==> $str\n";
+      Log 1, "update $str";
+    }
+  }
+
+  # third run: move glob
+  foreach my $f (sort keys %{$lControl{$pack}}) {
+    my $lCtrl = $lControl{$pack}{$f}{ctrl};
+    my $str;
+    next if ($f =~ m/.hex$/);  # skip firmware files
+    next if ($lCtrl ne "MOV");
+
+    if ($lCtrl eq "MOV" && $f =~ /\*/) {
+      # get filename and path
+      #my $fname = substr $f,rindex($f,'/')+1;
+      my $fpath = substr $f,0,rindex($f,'/')+1;
+
+      foreach my $file (<$modpath/$f>) {
+        $str = update_CleanUpLocalFiles($lCtrl,"$file","$modpath/$lControl{$pack}{$f}{move}/");
+        $cleanup .= "==> $str\n";
+        Log 1, "update $str";
+      }
+    }
+  }
+
+  # last run: delete
+  foreach my $f (sort keys %{$lControl{$pack}}) {
+    my $lCtrl = $lControl{$pack}{$f}{ctrl};
+    my $str;
+    next if ($f =~ m/.hex$/);  # skip firmware files
+    next if ($lCtrl ne "DEL");
 
     if ($f =~ /\*/) {
       # get filename and path
@@ -230,22 +281,16 @@ update_DoHousekeeping($)
       foreach my $file (<$modpath/$f>) {
         if ($lCtrl eq "DEL") {
           $str = update_CleanUpLocalFiles($lCtrl,"$file","");
+          $cleanup .= "==> $str\n";
+          Log 1, "update $str";
         }
-        if ($lCtrl eq "MOV") {
-          $str = update_CleanUpLocalFiles($lCtrl,"$file","$modpath/$lControl{$pack}{$f}{move}/");
-        }
-        $cleanup .= "==> $str\n";
-        Log 1, "update $str";
       }
     } else {
       if ($lCtrl eq "DEL") {
         $str = update_CleanUpLocalFiles($lCtrl,"$modpath/$f","");
+        $cleanup .= "==> $str\n";
+        Log 1, "update $str";
       }
-      if ($lCtrl eq "MOV") {
-        $str = update_CleanUpLocalFiles($lCtrl,"$modpath/$f","$modpath/$lControl{$pack}{$f}{move}");
-      }
-      $cleanup .= "==> $str\n";
-      Log 1, "update $str";
     }
   }
 
@@ -295,6 +340,7 @@ update_CheckUpdates($$$$)
     next if ($f =~ m/.hex$/);
     # skip housekeeping
     next if ($rControl{$pack}{$f}{ctrl} eq "DEL" ||
+             $rControl{$pack}{$f}{ctrl} eq "DIR" ||
              $rControl{$pack}{$f}{ctrl} eq "MOV");
 
     # get remote filename
@@ -557,6 +603,7 @@ update_ListChanges($)
   foreach my $f (sort keys %{$rControl{$pack}}) {
     next if ($f =~ m/.hex$/);  # skip firmware files
     next if ($rControl{$pack}{$f}{ctrl} eq "DEL" ||
+             $rControl{$pack}{$f}{ctrl} eq "DIR" ||
              $rControl{$pack}{$f}{ctrl} eq "MOV");
     next if ($lControl{$pack}{$f} &&
              $rControl{$pack}{$f}{date} eq $lControl{$pack}{$f}{date});
@@ -672,6 +719,10 @@ update_WriteLocalControlFile($$$)
       print FH "$ctrl $date $size $file\n";
     }
 
+    if ($ctrl eq "DIR") {
+      Log 5, "update ".$UPDATE{$pack}{control}.": $ctrl $file";
+      print FH "$ctrl $file\n";
+    }
     if ($ctrl eq "MOV") {
       Log 5, "update ".$UPDATE{$pack}{control}.": $ctrl $file $move";
       print FH "$ctrl $file $move\n";
@@ -717,6 +768,9 @@ update_ParseControlFile($$$$)
         $date = $2;
         $size = $3;
         $file = $4;
+      } elsif ($l =~ m/^(DIR) (\S+)$/) {
+        $ctrl = $1;
+        $file = $2;
       } elsif ($l =~ m/^(MOV) (\S+) (\S+)$/) {
         $ctrl = $1;
         $file = $2;
@@ -728,8 +782,8 @@ update_ParseControlFile($$$$)
         $ctrl = "ESC"
       }
       if ($ctrl eq "ESC") {
-        Log 1, "update File 'controls.txt' ($from) is corrupt";
-        $ret = "File 'controls.txt' ($from) is corrupt";
+        Log 1, "update File 'controls_".lc($pack).".txt' ($from) is corrupt";
+        $ret = "File 'controls_".lc($pack).".txt' ($from) is corrupt";
       }
       last if ($ret);
 #      if ($local) {
@@ -750,12 +804,22 @@ sub
 update_CleanUpLocalFiles($$$)
 {
   my ($ctrl,$file,$move) = @_;
+  my $modpath = (-d "updatefhem.dir" ? "updatefhem.dir":$attr{global}{modpath});
   my $ret;
 
+  # make dir
+  if ($ctrl eq "DIR") {
+    my $mret = update_MakeDirectory($file);
+    if (!$mret) {
+      $ret = "create directory $modpath/$file";
+    } else {
+      $ret = "create directory $modpath/$file failed: $mret";
+    }
+  }
   # move file
   if ($ctrl eq "MOV") {
-    mv "$file", "$move" if (-f $file);
-    if (!$!) {
+    my $mvret = mv "$file", "$move" if (-f $file);
+    if ($mvret) {
       $ret = "moving $file to $move";
     } else {
       $ret = "moving $file to $move failed: $!";

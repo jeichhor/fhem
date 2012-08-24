@@ -1,0 +1,29 @@
+DIR docs
+DIR www/images/dark
+DIR www/images/default/weather
+DIR www/images/smallscreen
+DIR www/gplot
+MOV FHEM/darklogo.png www/images/dark
+MOV FHEM/fhem_smallscreen.png www/images/smallscreen
+MOV FHEM/ccc.jpg docs
+MOV FHEM/cul_rfr.jpg docs
+MOV FHEM/*.png www/images/default
+MOV FHEM/*.jpg www/images/default
+MOV FHEM/*.gif www/images/default
+MOV FHEM/*.ico www/images/default
+MOV FHEM/*.gplot www/gplot
+MOV FHEM/*.js www/pgm2
+MOV FHEM/*.css www/pgm2
+MOV FHEM/*.svg www/pgm2
+MOV FHEM/*.html docs
+MOV www/pgm2/darklogo.png www/images/dark
+MOV www/pgm2/fhem_smallscreen.png www/images/smallscreen
+MOV www/pgm2/ccc.jpg docs
+MOV www/pgm2/cul_rfr.jpg docs
+MOV www/pgm2/*.png www/images/default
+MOV www/pgm2/*.jpg www/images/default
+MOV www/pgm2/*.gif www/images/default
+MOV www/pgm2/*.ico www/images/default
+MOV www/pgm2/*.gplot www/gplot
+MOV www/pgm2/*.html docs
+DEL FHEM/release.pm
