@@ -172,8 +172,11 @@ CommandUpdatefhem($$)
     }
     $c = 1;
   }
-
-  return "nothing to do..." if (!$c);
+  if (!$c) {
+    $ret = SwitchUpdate($modpath,$moddir);
+    $ret = "nothing to do..." if (!$ret);
+    return $ret;
+  }
 
   # do a backup first
   my $doBackup = (!defined($attr{global}{backup_before_update}) ? 1 : $attr{global}{backup_before_update});
@@ -308,6 +311,57 @@ CommandUpdatefhem($$)
   if($newfhem) {
     $ret .= "\nA new version of fhem.pl was installed, 'shutdown restart' is required!";
     Log 1, "updatefhem New version of fhem.pl, 'shutdown restart' is required!";
+  }
+
+  $ret .= SwitchUpdate($modpath,$moddir);
+  return $ret;
+}
+
+sub
+SwitchUpdate(@)
+{
+  my ($modpath,$moddir) = @_;
+  my $ret;
+  if (-e "$moddir/99_update.pm") {
+    my $msg;
+    my $cmdret;
+    $ret .= "\nModule(s) reloaded:\n";
+    $cmdret = CommandReload(undef,"99_backup.pm");
+    if (!$cmdret) {
+      Log 1, "update reloaded module: 99_backup.pm";
+      $ret .= "==> 99_backup.pm\n";
+    } else {
+      $ret .= "==> 99_backup.pm:\n$cmdret\n";
+    }
+    $cmdret = CommandReload(undef,"99_update.pm");
+    if (!$cmdret) {
+      Log 1, "update reloaded module: 99_update.pm";
+      $ret .= "==> 99_update.pm\n";
+    } else {
+      $ret .= "==> 99_update.pm:\n$cmdret\n";
+    }
+    $cmdret = AnalyzeCommandChain(undef, "backup");
+    if($cmdret !~ m/backup done.*/) {
+      Log 1, "updatefhem: The operation was canceled. Please check manually!";
+      $msg  = "Something went wrong during backup:\n$cmdret\n";
+      $msg .= "The operation was canceled. Please check manually!";
+      return $msg;
+    }
+    $ret .= "$cmdret\n";
+    $ret .= AnalyzeCommandChain(undef, "update");
+    $ret .= "\n\nIMPORTANT NOTICE:\n";
+    $ret .= "The directory structure of Fhem has changed from version 5.2 to 5.3.\n";
+    $ret .= "To support the new structure, a new backup and update function has been\n";
+    $ret .= "implemented.\n\n";
+    $ret .= "*** The formally known command 'updatefhem' was replaced by the new\n";
+    $ret .= "*** command 'update'.\n\n";
+    $ret .= "To switch to the new structure, a second run of the update was called\n";
+    $ret .= "automatically. A backup of your current installation can be found at\n";
+    $ret .= "'$modpath/backup'.\n";
+    $ret .= "Maybe some of your locally changed files has to be modified manually.\n\n";
+    $ret .= "More information of the new directory structure can be found at the\n";
+    $ret .= "'HOWTO.html' file in section 'New directory structure from version 5.3'.\n\n";
+    $ret .= "Regards your Fhem-Team ;-)\n";
   }
   return $ret;
 }
