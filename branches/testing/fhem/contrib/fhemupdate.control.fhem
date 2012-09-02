@@ -3,6 +3,7 @@ DIR www/images/dark
 DIR www/images/default/weather
 DIR www/images/smallscreen
 DIR www/gplot
+DIR www/pgm2
 MOV FHEM/darklogo.png www/images/dark
 MOV FHEM/fhem_smallscreen.png www/images/smallscreen
 MOV FHEM/ccc.jpg docs
@@ -26,4 +27,7 @@ MOV www/pgm2/*.gif www/images/default
 MOV www/pgm2/*.ico www/images/default
 MOV www/pgm2/*.gplot www/gplot
 MOV www/pgm2/*.html docs
+DEL FHEM/CHANGED
+DEL FHEM/example.*
+DEL FHEM/filetimes.txt
 DEL FHEM/release.pm
