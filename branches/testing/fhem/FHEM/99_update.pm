@@ -9,7 +9,9 @@ package main;
 use strict;
 use warnings;
 use HttpUtils;
-use FhemUtils::release;
+if(! eval "use FhemUtils::release; 1") {
+  use release;
+}
 use File::Copy qw(cp mv);
 
 sub CommandUpdate($$);

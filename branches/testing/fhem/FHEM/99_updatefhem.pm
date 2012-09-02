@@ -5,6 +5,7 @@ package main;
 use strict;
 use warnings;
 use HttpUtils;
+use File::Copy;
 
 sub CommandUpdatefhem($$);
 sub ParseChanges($);
@@ -24,6 +25,14 @@ updatefhem_Initialize($$)
                 Hlp=>",update fhem from the nightly SVN" );
   $cmds{updatefhem} = \%fhash;
 
+  my $modpath = (-d "updatefhem.dir" ? "updatefhem.dir":$attr{global}{modpath});
+  my $moddir = "$modpath/FHEM";
+  if(!-d "$moddir/FhemUtils") {
+    mkdir "$moddir/FhemUtils";
+    if(-e "$moddir/release.pm") {
+      copy("$moddir/release.pm", "$moddir/FhemUtils/");
+    }
+  }
 }
 
 #####################################
@@ -41,7 +50,10 @@ CommandUpdatefhem($$)
   my $clean = 0;
   my $msg;
 
-  if(!$param && !-d $wwwdir) {
+  if (!$param && -e "$moddir/99_update.pm") {
+    $ret = SwitchUpdate($modpath,$moddir);
+    return $ret;
+  } elsif (!$param && !-d $wwwdir) {
     $ret  = "Usage: updatefhem [<changed>|<filename>|<housekeeping> [<clean>] [<yes>]|<preserve> [<filename>]]\n";
     $ret .= "Please note: The update routine has changed! Please consider the manual of command 'updatefhem'!";
     return $ret;
@@ -353,7 +365,7 @@ SwitchUpdate(@)
     $ret .= "The directory structure of Fhem has changed from version 5.2 to 5.3.\n";
     $ret .= "To support the new structure, a new backup and update function has been\n";
     $ret .= "implemented.\n\n";
-    $ret .= "*** The formally known command 'updatefhem' was replaced by the new\n";
+    $ret .= "*** The formerly known command 'updatefhem' was replaced by the new\n";
     $ret .= "*** command 'update'.\n\n";
     $ret .= "To switch to the new structure, a second run of the update was called\n";
     $ret .= "automatically. A backup of your current installation can be found at\n";
@@ -361,6 +373,10 @@ SwitchUpdate(@)
     $ret .= "Maybe some of your locally changed files has to be modified manually.\n\n";
     $ret .= "More information of the new directory structure can be found at the\n";
     $ret .= "'HOWTO.html' file in section 'New directory structure from version 5.3'.\n\n";
+    $ret .= "Before filing a bug report, do the following:\n";
+    $ret .= "- restart Fhem an re-check for issues\n";
+    $ret .= "- check your directory structure\n";
+    $ret .= "  ( new version in http://fhemwiki.de/wiki/DevelopmentDirectoryStructure )\n\n";
     $ret .= "Regards your Fhem-Team ;-)\n";
   }
   return $ret;
