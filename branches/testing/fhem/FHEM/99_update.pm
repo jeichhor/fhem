@@ -9,9 +9,6 @@ package main;
 use strict;
 use warnings;
 use HttpUtils;
-if(! eval "use FhemUtils::release; 1") {
-  use release;
-}
 use File::Copy qw(cp mv);
 
 sub CommandUpdate($$);
@@ -28,14 +25,19 @@ sub update_WriteLocalControlFile($$$);
 
 my $BRANCH;
 
-foreach my $pack (split(" ",uc($UPDATE{packages}))) {
-  $UPDATE{$pack}{control} = "controls_".lc($pack).".txt";
-}
 
 ########################################
 sub
 update_Initialize($$)
 {
+  if(!eval "require FhemUtils::release") {
+    require release;
+  }
+
+  foreach my $pack (split(" ",uc($UPDATE{packages}))) {
+    $UPDATE{$pack}{control} = "controls_".lc($pack).".txt";
+  }
+
   my %hash = (
     Fn  => "CommandUpdate",
     Hlp => "[development|stable] [<file>|check|fhem],update Fhem",
@@ -145,6 +147,7 @@ update_DoUpdate(@)
   my $rControl_ref = {};
   my $lControl_ref = {};
   foreach my $pack (split(" ",uc($UPDATE{packages}))) {
+    Log 3, "update get $server/$srcdir/$UPDATE{$pack}{control}";
     my $controlFile = GetFileFromURL("$server/$srcdir/$UPDATE{$pack}{control}");
     return "Can't get '$UPDATE{$pack}{control}' from $server" if (!$controlFile);
     # parse remote controlfile
@@ -477,7 +480,7 @@ update_GetRemoteFiles($$$)
     $fpath =~ s/$fname//g;
 
     # get remote File
-    Log 5, "update get $server/$srcdir/$remoteFile";
+    Log 3, "update get $server/$srcdir/$remoteFile";
     my $fileContent = GetFileFromURL("$server/$srcdir/$remoteFile");
     my $fileLength = length($fileContent);
     my $ctrlLength = $updateFiles_ref->{$f}->{size};
@@ -585,6 +588,7 @@ update_ListChanges($)
   $pack = "FHEM";
 
   # get list of files
+  Log 3, "update get $server/$srcdir/$UPDATE{$pack}{control}";
   my $controlFile = GetFileFromURL("$server/$srcdir/$UPDATE{$pack}{control}");
   return "Can't get $UPDATE{$pack}{control} from $server" if (!$controlFile);
 
@@ -649,6 +653,7 @@ update_CheckFhemRelease($$)
   my $ret = undef;
   
   # get fhem to check version
+  Log 3, "update get $server/$srcdir/FHEM/FhemUtils/release.pm";
   my $uRelease = GetFileFromURL("$server/$srcdir/FHEM/FhemUtils/release.pm");
   Log 5, "update get $server/$srcdir/FHEM/FhemUtils/release.pm";
   return "Can't get release.pm from $server" if (!$uRelease);
