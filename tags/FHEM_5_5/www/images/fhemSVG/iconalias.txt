@@ -1,2 +1,0 @@
-set-off        light_question.svg
-set-on         light_question.svg
