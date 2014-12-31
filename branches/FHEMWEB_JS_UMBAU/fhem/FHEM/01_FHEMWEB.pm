@@ -1352,7 +1352,7 @@ FW_showRoom()
         $icon = FW_makeImage($icon,$icon,"icon") . "&nbsp;" if($icon);
 
         if($FW_hiddenroom{detail}) {
-          FW_pO "<td><div class=\"col1\">$icon$devName</div></td>";
+          FW_pO "<td><div class=\"col1\">$icon$devName</div></td>" if(!$usuallyAtEnd{$d});
         } else {
           FW_pH "detail=$d", "$icon$devName", 1, "col1" if(!$usuallyAtEnd{$d});
         }
