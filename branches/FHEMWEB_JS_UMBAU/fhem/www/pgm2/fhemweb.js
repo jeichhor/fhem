@@ -420,7 +420,7 @@ FW_createSelect(elName, devName, vArr, currVal, reading, cmd)
   var vHash = {};
   for(var j=1; j < vArr.length; j++) {
     var o = document.createElement('option');
-    o.text = o.value = vArr[j];
+    o.text = o.value = vArr[j].replace(/#/g," ");
     vHash[vArr[j]] = 1;
     newEl.options[j-1] = o;
   }
