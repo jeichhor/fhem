@@ -1072,6 +1072,7 @@ FW_doDetail($)
   FW_pH "cmd=style iconFor $d", "Select icon";
   FW_pH "cmd=style showDSI $d", "Extend devStateIcon";
   FW_pH "$FW_ME/docs/commandref.html#${t}", "Device specific help";
+  FW_pH "cmd=delete $d", "Delete this device ($d)" if($d ne "global");
   FW_pO "<br><br>";
   FW_pO "</div>";
 
