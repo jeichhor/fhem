@@ -27,7 +27,8 @@ window.onbeforeunload = function(e)
   return undefined;
 }
 
-$(document).ready(function()
+function
+FW_jqueryReadyFn()
 {
   FW_serverGenerated = document.body.getAttribute("generated");
   if(document.body.getAttribute("longpoll"))
@@ -42,10 +43,14 @@ $(document).ready(function()
       return;
     }
     FW_scripts[sname].loaded = true;
-    if(p.callbacks)
+    if(p.callbacks && !p.called) {
+      p.called = true;  // Avoid endless loop
       for(var i1=0; i1< p.callbacks.length; i1++)
-        if(p.callbacks[i1]) // pushing undefined callbacks on the stack is allowed
+        if(p.callbacks[i1]) // pushing undefined callbacks on the stack is ok
           p.callbacks[i1]();
+      delete(p.callbacks);
+    }
+
   });
   $("head link").each(function() { FW_links[$(this).attr("href")] = 1 });
 
@@ -88,7 +93,29 @@ $(document).ready(function()
   });
 
   FW_docReady = true;
-});
+}
+
+
+if(window.jQuery) {
+  $(document).ready(FW_jqueryReadyFn);
+
+} else {
+  // FLOORPLAN compatibility
+  loadScript("pgm2/jquery.min.js", function() {
+    loadScript("pgm2/jquery-ui.min.js", function() {
+      FW_jqueryReadyFn();
+    }, true);
+  }, true);
+}
+
+// FLOORPLAN compatibility
+function
+FW_delayedStart()
+{
+  setTimeout("FW_longpoll()", 100);
+}
+    
+
 
 function
 log(txt)
@@ -683,13 +710,13 @@ FW_createMultiple(elName, devName, vArr, currVal, reading, cmd)
 
 /*************** SCRIPT LOAD FUNCTIONS START **************/
 function
-loadScript(sname, callback)
+loadScript(sname, callback, force)
 {
-  var r = $("head").attr("root");
+  var h = document.head || document.getElementsByTagName('head')[0];
+  var r = h.getAttribute("root");
   if(!r)
     r = "/fhem";
   sname = r+"/"+sname;
-
   if(FW_scripts[sname]) {
     if(FW_scripts[sname].loaded) {
       if(callback)
@@ -699,7 +726,7 @@ loadScript(sname, callback)
     }
     return;
   }
-  if(!FW_docReady) {
+  if(!FW_docReady && !force) {
     FW_scripts[sname] = { callbacks:[ callback] };
     return;
   }
@@ -715,9 +742,13 @@ loadScript(sname, callback)
   {
     var p = FW_scripts[sname];
     p.loaded = true;
-    for(var i1=0; i1< p.callbacks.length; i1++)
-      if(p.callbacks[i1]) // pushing undefined callbacks on the stack is allowed
-        p.callbacks[i1]();
+    if(!p.called) {
+      p.called = true;
+      for(var i1=0; i1< p.callbacks.length; i1++)
+        if(p.callbacks[i1]) // pushing undefined callbacks on the stack is ok
+          p.callbacks[i1]();
+    }
+    delete(p.callbacks);
   }
 
   log("Loading script "+sname);
@@ -740,7 +771,7 @@ loadScript(sname, callback)
         FW_longpoll();
     }
   }
-  $("head").append(script);
+  h.appendChild(script);
 }
 
 function
