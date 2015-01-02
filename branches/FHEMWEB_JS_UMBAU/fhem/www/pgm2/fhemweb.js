@@ -381,7 +381,8 @@ FW_replaceWidget(oldEl, devName, vArr, currVal, reading, cmd)
   }
 
   $(newEl).addClass(wn+"_widget");
-  if(reading)
+  if(reading &&
+     $(newEl).find("[informId]").length == 0 && !$(newEl).attr("informId"))
     $(newEl).attr("informId", devName);
   $(oldEl).replaceWith(newEl);
 
