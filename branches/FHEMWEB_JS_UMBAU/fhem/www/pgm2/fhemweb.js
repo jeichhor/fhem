@@ -359,15 +359,17 @@ FW_replaceWidget(oldEl, devName, vArr, currVal, reading, cmd)
 {
   var newEl, wn;
   var elName = $(oldEl).attr("name");
+  if(!elName)
+    elName = $(oldEl).find("[name]").attr("name");
 
   if(vArr.length == 0) { //  No parameters, input field
-    newEl = FW_createTextField(elName,devName,["textField"],currVal,reading,cmd);
+    newEl =FW_createTextField(elName,devName,["textField"],currVal,reading,cmd);
     wn = "textField";
 
   } else {
     for(wn in FW_widgets) {
       if(FW_widgets[wn].createFn) {
-        newEl = FW_widgets[wn].createFn(elName,devName,vArr,currVal,reading,cmd);
+        newEl =FW_widgets[wn].createFn(elName,devName,vArr,currVal,reading,cmd);
         if(newEl)
           break;
       }
