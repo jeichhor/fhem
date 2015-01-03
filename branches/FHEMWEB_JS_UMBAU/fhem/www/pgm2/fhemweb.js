@@ -138,7 +138,7 @@ addcsrf(arg)
 }
 
 function
-FW_cmd(arg)
+FW_cmd(arg, callback)
 {
   log("FW_cmd:"+arg);
   arg = addcsrf(arg);
@@ -146,8 +146,12 @@ FW_cmd(arg)
   req.open("POST", arg, true);
   req.send(null);
   req.onreadystatechange = function(){
-    if(req.readyState == 4 && req.responseText)
-      FW_errmsg(req.responseText, 5000);
+    if(req.readyState == 4 && req.responseText) {
+      if(callback)
+        callback(req.responseText);
+      else
+        FW_errmsg(req.responseText, 5000);
+    }
   }
 }
 
@@ -171,6 +175,23 @@ FW_errmsg(txt, timeout)
   if(timeout)
     setTimeout("FW_errmsg('')", timeout);
 }
+
+function
+FW_okDialog(txt)
+{
+  var div = $("<div id='FW_okDialog'>");
+  $(div).html(txt);
+  $("body").append(div);
+  $(div).dialog({
+    dialogClass:"no-close", modal:true, width:"auto", 
+    maxWidth:$(window).width()*0.9, maxHeight:$(window).height()*0.9,
+    buttons: [{text:"OK", click:function(){
+      $(this).dialog("close");
+      $(div).remove();
+    }}]
+  });
+}
+
 
 function
 FW_replaceLink(el)

@@ -38,6 +38,10 @@ div.block { border:1px solid gray; background: #F8F8E0; padding:0.7em; }
 select      { margin-left:5px; margin-right:5px; }
 .slider     { float:left; width:250px; height:26px; }
 .get,.set,.attr { margin-bottom:5px; float:left; }
+select.svgSrc     { width:100px; }
+select.fileCol    { width:50px; }
+select.fileRegexp { width:120px; }
+
 .handle { position:relative; cursor:pointer; width:50px;
           height:20px; line-height:20px;
           -webkit-user-select:none; -moz-user-select:none; -user-select:none;

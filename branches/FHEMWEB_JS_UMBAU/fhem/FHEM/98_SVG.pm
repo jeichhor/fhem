@@ -32,14 +32,16 @@ sub SVG_calcOffsets($$);
 sub SVG_doround($$$);
 sub SVG_fmtTime($$);
 sub SVG_pO($);
-sub SVG_readgplotfile($$);
-sub SVG_render($$$$$$$$$;$$);
+sub SVG_readgplotfile($$$);
+sub SVG_render($$$$$$$$;$$);
 sub SVG_showLog($);
 sub SVG_substcfg($$$$$$);
 sub SVG_time_align($$);
 sub SVG_time_to_sec($);
 sub SVG_openFile($$$);
 sub SVG_doShowLog($$$$;$$);
+sub SVG_getData($$$$$);
+sub SVG_sel($$$;$$);
 
 my %SVG_devs;       # hash of from/to entries per device
 
@@ -50,7 +52,8 @@ SVG_Initialize($)
   my ($hash) = @_;
 
   $hash->{DefFn} = "SVG_Define";
-  $hash->{AttrList} = "fixedoffset fixedrange startDate plotsize nrAxis label title plotfunction";
+  $hash->{AttrList} = "fixedoffset fixedrange startDate plotsize nrAxis ".
+                      "label title plotfunction";
   $hash->{SetFn}    = "SVG_Set";
   $hash->{FW_summaryFn} = "SVG_FwFn";
   $hash->{FW_detailFn}  = "SVG_FwFn";
@@ -236,12 +239,12 @@ SVG_txt($$$$)
 }
 
 sub
-SVG_sel($$$@)
+SVG_sel($$$;$$)
 {
-  my ($v,$l,$c,$fnData) = @_;
+  my ($v,$l,$c,$fnData,$class) = @_;
   my @al = split(",",$l);
   $c =~ s/\\x3a/:/g if($c);
-  return FW_select($v,$v,\@al,$c, "set", $fnData);
+  return FW_select(undef,$v,\@al,$c, $class?$class:"set", $fnData);
 }
 
 ############################
@@ -255,12 +258,10 @@ SVG_PEdit($$$$)
 
   return "" if( $pe eq 'never' );
 
-  my $ld = $defs{$d}{LOGDEVICE};
-  my $ldt = $defs{$ld}{TYPE};
-
   my $gp = "$FW_gplotdir/$defs{$d}{GPLOTFILE}.gplot";
+  my $pm = AttrVal($d,"plotmode",$FW_plotmode);
 
-  my ($err, $cfg, $plot, $flog) = SVG_readgplotfile($d, $gp);
+  my ($err, $cfg, $plot, $srcDesc) = SVG_readgplotfile($d, $gp, $pm);
   my %conf = SVG_digestConf($cfg, $plot);
 
   my $ret = "<br>";
@@ -280,8 +281,6 @@ SVG_PEdit($$$$)
                 "action=\"$FW_ME/SVG_WriteGplot\">";
   $ret .= "Plot Editor";
   $ret .= FW_hidden("detail", $d); # go to detail after save
-  $ret .= FW_hidden("gplotName", $gp);
-  $ret .= FW_hidden("logdevicetype", $ldt);
   if(defined($FW_pos{zoom}) && defined($FW_pos{off})) { # for showData
     $ret .= FW_hidden("pos", "zoom=$FW_pos{zoom};off=$FW_pos{off}");
   }
@@ -314,23 +313,39 @@ SVG_PEdit($$$$)
   $ret .= "</tr>";
 
   my $max = @{$conf{lType}}+1;
-  $max = 8 if($max > 8);
-  my ($desc, $htmlArr, $example) = ("Spec", undef, "");
-  if($modules{$ldt}{SVG_sampleDataFn}) {
-    no strict "refs";
-    ($desc, $htmlArr, $example) = 
-        &{$modules{$ldt}{SVG_sampleDataFn}}($ld, $flog, $max,\%conf, $FW_wname);
-    use strict "refs";
-  } else {
-    my @htmlArr; 
-    @htmlArr = map { SVG_txt("par_${_}_0","",$flog->[$_] ? $flog->[$_]:"",20) }
-                   (0..$max-1);
-    $htmlArr = \@htmlArr;
-  }
+  my ($desc, $cnt) = ("Spec", 0);
+  my (@srcHtml, @paramHtml, @exampleHtml, @revIdx);
+  my @srcNames = grep { $modules{$defs{$_}{TYPE}}{SVG_sampleDataFn} }
+                 sort keys %defs;
 
-  $ret .= "<tr class=\"odd\"><td>Diagramm label</td>";
-  $ret .= "<td>$desc</td>";
-  $ret .=" <td>Y-Axis,Plot-Type,Style,Width</td></tr>";
+  foreach my $src (@{$srcDesc->{order}}) {
+    my $lmax = $srcDesc->{src}{$src}{idx}+1;
+    my $fn = $modules{$defs{$src}{TYPE}}{SVG_sampleDataFn};
+    my @argArr = split(" ", $srcDesc->{src}{$src}{arg});
+    if($fn) {
+      no strict "refs";
+      my ($ldesc, $paramHtml, $example) = 
+                                &{$fn}($src, \@argArr, $lmax,\%conf, $FW_wname);
+      use strict "refs";
+      $desc = $ldesc;
+      push @paramHtml, @{$paramHtml};
+      map { push @exampleHtml, $example } (0..$lmax-1);
+
+    } else {
+      push @paramHtml, map { SVG_txt("par_${_}_0","",$_,20) } @argArr;
+      map { push @exampleHtml, "" } (0..$lmax-1);
+    }
+
+    push @srcHtml,
+        map { FW_select(undef,"src_$_",\@srcNames,$src,"svgSrc");} (0..$lmax-1);
+    map { push @revIdx,$srcDesc->{rev}{$cnt}{$_}; } (0..$lmax-1);
+    $cnt++;
+  }
+  # Last, empty line
+  push @revIdx,int(@revIdx);
+  push @srcHtml, $srcHtml[0];
+  push @paramHtml, $paramHtml[0];
+  push @exampleHtml, $exampleHtml[0];
 
   my @lineStyles;
   if(SVG_openFile($FW_cssdir,
@@ -339,33 +354,46 @@ SVG_PEdit($$$$)
     close(FH);
   }
 
-  my $r = 0;
+  $ret .= "<tr class=\"odd\"><td>Diagramm label, Source</td>";
+  $ret .= "<td>$desc</td>";
+  $ret .=" <td>Y-Axis,Plot-Type,Style,Width</td></tr>";
+
+
+  my ($r, $example, @output) = (0, "");
   for($r=0; $r < $max; $r++) {
-    $ret .= "<tr class=\"".(($r&1)?"odd":"even")."\"><td>";
-    $ret .= SVG_txt("title_${r}", "", !$conf{lTitle}[$r]&&$r<($max-1) ? 
-                                      "notitle" : $conf{lTitle}[$r], 12);
-    $ret .= "</td><td>";
-    $ret .= $htmlArr->[$r] if($htmlArr && @{$htmlArr} > $r);
-    $ret .= "</td><td>";
-    my $v = $conf{lAxis}[$r];
-    $ret .= SVG_sel("axes_${r}", "left,right", 
+    my $idx = $revIdx[$r];
+    $example .= "<div class='ex ex_$idx' style='display:".($idx?"none":"block").
+                        "'>$exampleHtml[$r]</div>";
+    my $o = "<tr row='$idx' class=\"".(($r&1)?"odd":"even")."\"><td>";
+    $o .= SVG_txt("title_$idx", "", !$conf{lTitle}[$idx]&&$idx<($max-1) ? 
+                                      "notitle" : $conf{lTitle}[$idx], 12);
+    my $sh = $srcHtml[$r]; $sh =~ s/src_\d+/src_$idx/g;
+    $o .= $sh;
+    $o .= "</td><td>";
+    my $ph = $paramHtml[$r]; $ph =~ s/par_\d+_/par_${idx}_/g;
+    $o .= $ph;
+    $o .= "</td><td>";
+    my $v = $conf{lAxis}[$idx];
+    $o .= SVG_sel("axes_${idx}", "left,right", 
                     ($v && $v eq "x1y1") ? "left" : "right");
-    $ret .= SVG_sel("type_${r}", "lines,points,steps,fsteps,histeps,bars",
-                    $conf{lType}[$r]);
-    my $ls = $conf{lStyle}[$r]; 
+    $o .= SVG_sel("type_${idx}", "lines,points,steps,fsteps,histeps,bars",
+                    $conf{lType}[$idx]);
+    my $ls = $conf{lStyle}[$idx]; 
     if($ls) {
       $ls =~ s/class=//g;
       $ls =~ s/"//g; 
     }
-    $ret .= SVG_sel("style_${r}", join(",", @lineStyles), $ls);
-    my $lw = $conf{lWidth}[$r]; 
+    $o .= SVG_sel("style_$idx", join(",", @lineStyles), $ls);
+    my $lw = $conf{lWidth}[$idx]; 
     if($lw) {
       $lw =~ s/.*stroke-width://g;
       $lw =~ s/"//g; 
     }
-    $ret .= SVG_sel("width_${r}", "0.2,0.5,1,1.5,2,3,4", ($lw ? $lw : 1));
-    $ret .= "</td></tr>";
+    $o .= SVG_sel("width_$idx", "0.2,0.5,1,1.5,2,3,4", ($lw ? $lw : 1));
+    $o .= "</td></tr>";
+    $output[$idx] = $o;
   }
+  $ret .= join("", @output);
   $ret .= "<tr class=\"".(($r++&1)?"odd":"even")."\"><td colspan=\"3\">";
   $ret .= "Example lines for input:<br>$example</td></tr>";
 
@@ -375,6 +403,32 @@ SVG_PEdit($$$$)
           "</td></tr>";
 
   $ret .= "</table></form>";
+
+  my $sl = "$FW_ME/SVG_WriteGplot?detail=$d&showFileLogData=1";
+  if(defined($FW_pos{zoom}) && defined($FW_pos{off})) {
+    $sl .= "&pos=zoom=$FW_pos{zoom};off=$FW_pos{off}";
+  }
+
+  $ret .= <<'EOF';
+<script type="text/javascript">
+  var sel = "table.plotEditor tr[row] ";
+  $(sel+"input,"+sel+"select").focus(function(){
+    var row = $(this).closest("tr").attr("row");
+    $("table.plotEditor div.ex").css("display","none");
+    $("table.plotEditor div.ex_"+row).css("display","block");
+  });
+  $("table.plotEditor input[name=title_0]").focus();
+  $("table.plotEditor input[name=showFileLogData]").click(function(e){
+    e.preventDefault();
+EOF
+    $ret .= 
+    "FW_cmd('$sl', function(arg){" .<<'EOF';
+      FW_okDialog(arg);
+    });
+  });
+</script>
+EOF
+  return $ret;
 }
 
 ##################
@@ -440,6 +494,7 @@ SVG_zoomLink($$$)
 }
 
 
+# Debugging: show the data received from GET
 sub
 SVG_showData()
 {
@@ -447,17 +502,15 @@ SVG_showData()
   my $hash = $defs{$wl};
   my ($d, $gplotfile, $file) = split(":", $hash->{DEF});
   $gplotfile = "$FW_gplotdir/$gplotfile.gplot";
-  my ($err, $cfg, $plot, $flog) = SVG_readgplotfile($wl, $gplotfile);
+  my $pm = AttrVal($d,"plotmode",$FW_plotmode);
+  my ($err, $cfg, $plot, $srcDesc) = SVG_readgplotfile($wl, $gplotfile, $pm);
   if($err) {
     $FW_RET=$err;
     return 1;
   }
   SVG_calcOffsets($d, $wl);
-  my ($f,$t)=($SVG_devs{$d}{from}, $SVG_devs{$d}{to});
-  my $cmd = "get $d $file - $f $t " . join(" ", @{$flog});
-  my $ret = FW_fC($cmd, 1);
-  $ret =~ s/\n/<br>/gs;
-  $FW_RET = "$cmd<br><br>$ret";
+  $FW_RET = SVG_getData($d, $SVG_devs{$d}{from}, $SVG_devs{$d}{to}, $srcDesc,1);
+  $FW_RET =~ s/\n/<br>/gs;
   return 1;
 }
 
@@ -474,13 +527,15 @@ SVG_WriteGplot($)
     return 0;
   }
 
-  my $hasTl;
-  for(my $i=0; $i <= 8; $i++) {
-    $hasTl = 1 if($FW_webArgs{"title_$i"});
+  my $maxLines = 0;
+  foreach my $i (keys %FW_webArgs) {
+    next if($i !~ m/^title_(.*)$/);
+    $maxLines = $1 if($1 > $maxLines);
   }
-  return 0 if(!$hasTl);
+  return 0 if(!$maxLines);
 
-  my $fName = $FW_webArgs{gplotName};
+  my $wlName = $FW_webArgs{detail};
+  my $fName = "$FW_gplotdir/$defs{$wlName}{GPLOTFILE}.gplot";
   return if(!$fName);
 
   my @rows;
@@ -501,9 +556,8 @@ SVG_WriteGplot($)
   push @rows, "set y2range $FW_webArgs{y2range}" if($FW_webArgs{y2range});
   push @rows, "";
 
-  my $ld = $FW_webArgs{logdevicetype};
   my @plot;
-  for(my $i=0; $i <= 8; $i++) {
+  for(my $i=0; $i <= $maxLines; $i++) {
     next if(!$FW_webArgs{"title_$i"});
     my $prf = "par_${i}_";
     my @v = map {$FW_webArgs{"$prf$_"}}
@@ -512,7 +566,8 @@ SVG_WriteGplot($)
             join(":", map { $v[$_] =~ s/:/\\x3a/g if($_<$#v); $v[$_] } 0..$#v) :
             $v[0];
 
-    push @rows, "#$ld $r";
+    my $src = $FW_webArgs{"src_$i"};
+    push @rows, "#$src $r";
     push @plot, "\"<IN>\" using 1:2 axes ".
                 ($FW_webArgs{"axes_$i"} eq "right" ? "x1y2" : "x1y1").
                 ($FW_webArgs{"title_$i"} eq "notitle" ? " notitle" :
@@ -537,30 +592,40 @@ SVG_WriteGplot($)
 }
 
 sub
-SVG_readgplotfile($$)
+SVG_readgplotfile($$$)
 {
-  my ($wl, $gplot_pgm) = @_;
+  my ($wl, $gplot_pgm, $plotmode) = @_;
 
   ############################
   # Read in the template gnuplot file.  Digest the #FileLog lines.  Replace
   # the plot directive with our own, as we offer a file for each line
-  my (@filelog, @data, $plot);
+  my (%srcDesc, @data, $plot);
 
+  my $ld = $defs{$wl}{LOGDEVICE}
+     if($defs{$wl} && $defs{$wl}{LOGDEVICE});
   my $ldType = $defs{$defs{$wl}{LOGDEVICE}}{TYPE}
-     if($defs{$wl} && $defs{$wl}{LOGDEVICE} && $defs{$defs{$wl}{LOGDEVICE}});
-  $ldType = $defs{$wl}{TYPE}
-     if(!$ldType && $defs{$wl});
+     if($ld && $defs{$ld});
+  if(!$ldType && $defs{$wl}) {
+    $ldType = $defs{$wl}{TYPE};
+    $ld = $wl;
+  }
 
   my ($err, @svgplotfile) = FileRead($gplot_pgm);
   return ("$err", undef) if($err);
+  my ($plotfnCnt, $srcNum) = (0,0);
+  my @empty;
+  $srcDesc{all} = "";
+  $srcDesc{order} = \@empty;
 
   foreach my $l (@svgplotfile) {
     $l = "$l\n" unless $l =~ m/\n$/;
-    my $plotfn = undef;
-    if($l =~ m/^#$ldType (.*)$/) {
-      $plotfn = $1;
-      Log 3, "$wl: space is not allowed in $ldType definition: $plotfn"
-        if($plotfn =~ m/\s/);
+    my ($src, $plotfn) = (undef, undef);
+    if($l =~ m/^#([^ ]*) (.*)$/) {
+      if($1 eq $ldType) {
+        $src = $ld; $plotfn = $2;
+      } elsif($defs{$1}) {
+        $src = $1; $plotfn = $2;
+      }
     } elsif($l =~ "^plot" || $plot) {
       $plot .= $l;
     } else {
@@ -568,6 +633,8 @@ SVG_readgplotfile($$)
     }
 
     if($plotfn) {
+      Log 3, "$wl: space is not allowed in $ldType definition: $plotfn"
+        if($plotfn =~ m/\s/);
       my $specval = AttrVal($wl, "plotfunction", undef);
       if ($specval) {
         my @spec = split(" ",$specval);
@@ -577,11 +644,22 @@ SVG_readgplotfile($$)
           $spec_count++;
         }
       }
-      push(@filelog, $plotfn);
+
+      my $p = $srcDesc{src}{$src};
+      if(!$p) {
+        $p = { arg => $plotfn, idx=>0, num=>$srcNum++ };
+        $srcDesc{src}{$src} = $p;
+        push(@{$srcDesc{order}}, $src);
+      } else {
+        $p->{arg} .= " $plotfn";
+        $p->{idx}++;
+      }
+      $srcDesc{rev}{$p->{num}}{$p->{idx}} = $plotfnCnt++;
+      $srcDesc{all} .= " $plotfn";
     }
   }
 
-  return (undef, \@data, $plot, \@filelog);
+  return (undef, \@data, $plot, \%srcDesc);
 }
 
 sub
@@ -816,10 +894,9 @@ SVG_doShowLog($$$$;$$)
 {
   my ($wl, $d, $type, $file, $styleW, $styleH) = @_;
   my $pm = AttrVal($wl,"plotmode",$FW_plotmode);
-
   my $gplot_pgm = "$FW_gplotdir/$type.gplot";
 
-  my ($err, $cfg, $plot, $flog) = SVG_readgplotfile($wl, $gplot_pgm);
+  my ($err, $cfg, $plot, $srcDesc) = SVG_readgplotfile($wl, $gplot_pgm, $pm);
   if($err || !$defs{$d}) {
     my $msg = ($defs{$d} ? "Cannot read $gplot_pgm" : "No Logdevice $d");
     Log3 $FW_wname, 1, $msg;
@@ -851,8 +928,8 @@ SVG_doShowLog($$$$;$$)
       # Read the data from the filelog
       my $oll = $attr{global}{verbose};
       $attr{global}{verbose} = 0;         # Else the filenames will be Log'ged
-      my @path = split(" ", FW_fC("get $d $file $tmpfile $f $t " .
-                                  join(" ", @{$flog})));
+      my @path = split(" ",
+                        FW_fC("get $d $file $tmpfile $f $t $srcDesc->{all}"));
       $attr{global}{verbose} = $oll;
 
       # replace the path with the temporary filenames of the filelog output
@@ -878,8 +955,8 @@ SVG_doShowLog($$$$;$$)
       my ($f,$t)=($SVG_devs{$d}{from}, $SVG_devs{$d}{to});
       my $oll = $attr{global}{verbose};
       $attr{global}{verbose} = 0;         # Else the filenames will be Log'ged
-      my @path = split(" ", FW_fC("get $d $file $tmpfile $f $t " .
-                                  join(" ", @{$flog})));
+      my @path = split(" ",
+                        FW_fC("get $d $file $tmpfile $f $t $srcDesc->{all}"));
       $attr{global}{verbose} = $oll;
 
       # replace the path with the temporary filenames of the filelog output
@@ -915,8 +992,7 @@ SVG_doShowLog($$$$;$$)
     $f = 0 if(!$f);     # From the beginning of time...
     $t = 9 if(!$t);     # till the end
 
-    Log3 $FW_wname, 5,
-        "plotcommand: get $d $file INT $f $t " . join(" ", @{$flog});
+    Log3 $FW_wname, 5, "plotcommand: get $d $file INT $f $t ".$srcDesc->{all};
 
     $FW_RETTYPE = "image/svg+xml";
 
@@ -929,10 +1005,9 @@ SVG_doShowLog($$$$;$$)
       close(CFH);
 
     } else {
-      FW_fC("get $d $file INT $f $t " . join(" ", @{$flog}), 1);
       ($cfg, $plot) = SVG_substcfg(1, $wl, $cfg, $plot, $file, "<OuT>");
       my $ret = SVG_render($wl, $f, $t, $cfg,
-                        $internal_data, $plot, $FW_wname, $FW_cssdir, $flog,
+                        $plot, $FW_wname, $FW_cssdir, $srcDesc,
                         $styleW, $styleH);
       $internal_data = "";
       FW_pO $ret;
@@ -950,6 +1025,26 @@ SVG_doShowLog($$$$;$$)
 
 }
 
+sub
+SVG_getData($$$$$)
+{
+  my ($d, $f,$t,$srcDesc,$showData) = @_;
+  my (@da, $ret); 
+
+  foreach my $src (@{$srcDesc->{order}}) {
+    my $fname = ($src eq $defs{$d}{LOGDEVICE} ? $defs{$d}{LOGFILE} : "CURRENT");
+    my $cmd = "get $src $fname INT $f $t ".$srcDesc->{src}{$src}{arg};
+    FW_fC($cmd);
+    if($showData) {
+      $ret .= "\n$cmd\n\n";
+      $ret .= $$internal_data;
+    } else {
+      push(@da, $internal_data);
+    }
+  }
+  return $ret if($showData);
+  return \@da;
+}
 
 ######################
 # Convert the configuration to a "readable" form -> array to hash
@@ -1045,23 +1140,21 @@ SVG_getSteps($$$)
   return ($step, $mi, $ma);
 }
 sub
-SVG_render($$$$$$$$$;$$)
+SVG_render($$$$$$$$;$$)
 {
   my $name = shift;  # e.g. wl_8
   my $from = shift;  # e.g. 2008-01-01
   my $to = shift;    # e.g. 2009-01-01
   my $confp = shift; # lines from the .gplot file, w/o FileLog and plot
-  my $dp = shift;    # pointer to data (one string)
   my $plot = shift;  # Plot lines from the .gplot file
   my $parent_name = shift;  # e.g. FHEMWEB instance name
   my $parent_dir  = shift;  # FW_dir
-  my $flog        = shift;  # #FileLog lines, as array pointer
+  my $srcDesc     = shift;  # #FileLog lines, as array pointer
   my $styleW      = shift;
   my $styleH      = shift;
 
   $SVG_RET="";
   my $SVG_ss = AttrVal($parent_name, "smallscreen", 0);
-  return $SVG_RET if(!defined($dp) || $dp eq "");
 
   my $nr_axis = AttrVal($parent_name,"nrAxis","1,1");
   my ($nr_left_axis,$nr_right_axis,$use_left_axis,$use_right_axis) =
@@ -1084,10 +1177,12 @@ SVG_render($$$$$$$$$;$$)
   my $w = $ow-$nr_left_axis*$axis_width-$nr_right_axis*$axis_width;
   my $h = $oh-2*$y;   # Rect size
 
-  # Keep only the Filter part of the #FileLog
-  $flog = join(" ", map { my @a=split(":",$_);
-                          $a[1]=~s/\.[^\.]*$//; $a[1]; } @{$flog});
-  $flog = AttrVal($parent_name, "longpollSVG", 0) ? "flog=\" $flog \"" : "";
+  my $filter = $srcDesc->{all};
+  $filter =~ s/[^: ]*:([^: ]):[^ ]*/$1/g;
+  $filter = AttrVal($parent_name, "longpollSVG", 0) ? "flog=\" $filter \"" : "";
+
+  my %dataIdx;   # Build a reverse Index for the dataSource
+
 
   ######################
   # Html Header
@@ -1095,7 +1190,7 @@ SVG_render($$$$$$$$$;$$)
     SVG_pO '<?xml version="1.0" encoding="UTF-8"?>';
     SVG_pO '<!DOCTYPE svg>';
     SVG_pO '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" '.
-         'xmlns:xlink="http://www.w3.org/1999/xlink" '.$flog.'>';
+         'xmlns:xlink="http://www.w3.org/1999/xlink" '.$filter.'>';
   } else {
     SVG_pO '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" '.
              'xmlns:xlink="http://www.w3.org/1999/xlink" '.
@@ -1198,59 +1293,66 @@ SVG_render($$$$$$$$$;$$)
   my ($dxp, $dyp) = (\(), \());
 
   my ($d, $v, $ld, $lv) = ("","","","");
-
-  my ($dpl,$dpoff,$l) = (length($$dp), 0, "");
-  while($dpoff < $dpl) {                # using split instead is memory hog
-    my $ndpoff = index($$dp, "\n", $dpoff);
-    if($ndpoff == -1) {
-      $l = substr($$dp, $dpoff);
-    } else {
-      $l = substr($$dp, $dpoff, $ndpoff-$dpoff);
-    }
-    $dpoff = $ndpoff+1;
-    if($l =~ m/^#/) {
-      my $a = $conf{lAxis}[$idx];
-      if(defined($a)) {
-        $hmin{$a} = $min if(!defined($hmin{$a}) || $hmin{$a} > $min);
-        $hmax{$a} = $max if(!defined($hmax{$a}) || $hmax{$a} < $max);
+  my $da = SVG_getData($name, $from, $to, $srcDesc, 0);
+  for(my $dIdx=0; $dIdx<@{$da}; $dIdx++) {
+    my $lIdx = 0;
+    $idx = $srcDesc->{rev}{$dIdx}{$lIdx};
+    my $dp = $da->[$dIdx];
+    my ($dpl,$dpoff,$l) = (length($$dp), 0, "");
+    while($dpoff < $dpl) {                # using split instead is memory hog
+      my $ndpoff = index($$dp, "\n", $dpoff);
+      if($ndpoff == -1) {
+        $l = substr($$dp, $dpoff);
+      } else {
+        $l = substr($$dp, $dpoff, $ndpoff-$dpoff);
       }
-      ($min, $max) = (99999999, -99999999);
-      $hdx[$idx] = $dxp; $hdy[$idx] = $dyp;
-      ($dxp, $dyp) = (\(), \());
-      $idx++;
-
-    } elsif( $l =~ /^;/ ) { #allow ;special lines
-      if( $l =~ m/^;p (\S+)\s(\S+)/ ) {# point
-        my $xmul = $w/($xmax-$xmin);
-        my $x1;
-        if( $conf{xrange} ) {
-          $x1 = int(($1-$xmin)*$xmul);
-        } else {
-          $x1 = $x1;
+      $dpoff = $ndpoff+1;
+      if($l =~ m/^#/) {
+        my $a = $conf{lAxis}[$idx];
+        if(defined($a)) {
+          $hmin{$a} = $min if(!defined($hmin{$a}) || $hmin{$a} > $min);
+          $hmax{$a} = $max if(!defined($hmax{$a}) || $hmax{$a} < $max);
         }
-        my $y1 = $2;
+        ($min, $max) = (99999999, -99999999);
+        $hdx[$idx] = $dxp; $hdy[$idx] = $dyp;
+        ($dxp, $dyp) = (\(), \());
+        $lIdx++;
+        $idx = $srcDesc->{rev}{$dIdx}{$lIdx};
+        last if(!$idx);
 
-        push @{$dxp}, $x1;
-        push @{$dyp}, $y1;
+      } elsif( $l =~ /^;/ ) { #allow ;special lines
+        if( $l =~ m/^;p (\S+)\s(\S+)/ ) {# point
+          my $xmul = $w/($xmax-$xmin);
+          my $x1;
+          if( $conf{xrange} ) {
+            $x1 = int(($1-$xmin)*$xmul);
+          } else {
+            $x1 = $x1;
+          }
+          my $y1 = $2;
 
-      } elsif( $conf{lType}[$idx] eq "lines" ) {
-        push @{$dxp}, undef;
-        push @{$dyp}, $l;
+          push @{$dxp}, $x1;
+          push @{$dyp}, $y1;
 
+        } elsif( $conf{lType}[$idx] eq "lines" ) {
+          push @{$dxp}, undef;
+          push @{$dyp}, $l;
+
+        }
+
+      } else {
+        ($d, $v) = split(" ", $l);
+        $d =  ($tmul ? int((SVG_time_to_sec($d)-$fromsec)*$tmul) : $d);
+        if($ld ne $d || $lv ne $v) {            # Saves a lot on year zoomlevel
+          $ld = $d; $lv = $v;
+          push @{$dxp}, $d;
+          push @{$dyp}, $v;
+          $min = $v if($min > $v);
+          $max = $v if($max < $v);
+        }
       }
-
-    } else {
-      ($d, $v) = split(" ", $l);
-      $d =  ($tmul ? int((SVG_time_to_sec($d)-$fromsec)*$tmul) : $d);
-      if($ld ne $d || $lv ne $v) {              # Saves a lot on year zoomlevel
-        $ld = $d; $lv = $v;
-        push @{$dxp}, $d;
-        push @{$dyp}, $v;
-        $min = $v if($min > $v);
-        $max = $v if($max < $v);
-      }
+      last if($ndpoff == -1);
     }
-    last if($ndpoff == -1);
   }
 
   $dxp = $hdx[0];

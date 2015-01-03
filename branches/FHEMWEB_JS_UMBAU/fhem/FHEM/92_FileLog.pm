@@ -947,13 +947,12 @@ FileLog_sampleDataFn($$$$$)
   FileLog_addTics($conf->{y2tics}, \%tickh);
   $colnums = join(",", sort keys %tickh).",$colnums" if(%tickh);
 
-  $max = 8 if($max > 8);
   my @htmlArr;
   for(my $r=0; $r < $max; $r++) {
     my @f = split(":", ($flog->[$r] ? $flog->[$r] : ":::"), 4);
     my $ret = "";
-    $ret .= SVG_sel("par_${r}_0", $colnums, $f[0]);
-    $ret .= SVG_sel("par_${r}_1", $colregs, $f[1]);
+    $ret .= SVG_sel("par_${r}_0", $colnums, $f[0], undef, "fileCol");
+    $ret .= SVG_sel("par_${r}_1", $colregs, $f[1], undef, "fileRegexp");
     $ret .= SVG_txt("par_${r}_2", "", $f[2], 1);
     $ret .= SVG_txt("par_${r}_3", "", $f[3], 6);
     push @htmlArr, $ret;
