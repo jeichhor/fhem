@@ -136,6 +136,14 @@ jsSVG_getAttrs($)
   } keys %{$attr{$d}});
 }
 
+sub
+SVG_getplotsize($)
+{
+  my ($d) = @_;
+  return $FW_webArgs{plotsize} ? 
+                $FW_webArgs{plotsize} : AttrVal($d,"plotsize",$FW_plotsize);
+}
+
 ##################
 sub
 SVG_FwFn($$$$)
@@ -185,7 +193,7 @@ SVG_FwFn($$$$)
                 "&amp;pos=" . join(";", map {"$_=$FW_pos{$_}"} keys %FW_pos);
 
   if(AttrVal($d,"plotmode",$FW_plotmode) eq "SVG") {
-    my ($w, $h) = split(",", AttrVal($d,"plotsize",$FW_plotsize));
+    my ($w, $h) = split(",", SVG_getplotsize($d));
     $ret .= "<div class=\"SVGplot SVG_$d\">";
 
     if(AttrVal($FW_wname, "plotEmbed",
@@ -701,7 +709,7 @@ SVG_substcfg($$$$$$)
   $gplot_script =~ s/<OUT>/$tmpfile/g;
   $gplot_script =~ s/<IN>/$file/g;
 
-  my $ps = AttrVal($wl,"plotsize",$FW_plotsize);
+  my $ps = SVG_getplotsize($wl);
   $gplot_script =~ s/<SIZE>/$ps/g;
 
   $gplot_script =~ s/<TL>/$title/g;
