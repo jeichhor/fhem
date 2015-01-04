@@ -16,6 +16,7 @@ sub FW_answerCall($);
 sub FW_dev2image($;$);
 sub FW_devState($$@);
 sub FW_digestCgi($);
+sub FW_directNotify($);
 sub FW_doDetail($);
 sub FW_fatal($);
 sub FW_fileList($);
@@ -2202,6 +2203,16 @@ FW_makeEdit($$$)
 
 
 sub
+FW_longpollInfo($$$)
+{
+  my ($dev, $state, $html) = @_;
+  $dev =~ s/([\\"])/\\$1/g;
+  $state =~ s/([\\"])/\\$1/g;
+  $html =~ s/([\\"])/\\$1/g;
+  return "[\"$dev\",\"$state\",\"$html\"]";
+}
+
+sub
 FW_roomStatesForInform($$)
 {
   my ($me, $sinceTimestamp ) = @_;
@@ -2219,7 +2230,7 @@ FW_roomStatesForInform($$)
 
     my ($allSet, $cmdlist, $txt) = FW_devState($dn, "", \%extPage);
     if($defs{$dn} && $defs{$dn}{STATE} && $defs{$dn}{TYPE} ne "weblink") {
-      push @data, "$dn<<$defs{$dn}{STATE}<<$txt";
+      push @data, FW_longpollInfo($dn, $defs{$dn}{STATE}, $txt);
     }
   }
   my $data = join("\n", map { s/\n/ /gm; $_ } @data)."\n";
@@ -2265,7 +2276,7 @@ FW_Notify($$)
     if( !$modules{$defs{$dn}{TYPE}}{FW_atPageEnd} ) {
       my ($allSet, $cmdlist, $txt) = FW_devState($dn, "", \%extPage);
       ($FW_wname, $FW_ME, $FW_ss, $FW_tp, $FW_subdir) = @old;
-      push @data, "$dn<<$dev->{STATE}<<$txt";
+      push @data, FW_longpollInfo($dn, $dev->{STATE}, $txt);
     }
 
     #Add READINGS
@@ -2277,8 +2288,8 @@ FW_Notify($$)
           next; #ignore 'set' commands
         }
         my ($readingName,$readingVal) = split(": ",$events->[$i],2);
-        push @data, "$dn-$readingName<<$readingVal<<$readingVal";
-        push @data, "$dn-$readingName-ts<<$tn<<$tn";
+        push @data, FW_longpollInfo("$dn-$readingName",$readingVal,$readingVal);
+        push @data, FW_longpollInfo("$dn-$readingName-ts", $tn, $tn);
       }
     }
   }
@@ -2308,6 +2319,16 @@ FW_Notify($$)
   }
 
   return undef;
+}
+
+sub
+FW_directNotify($) # Notify without the event overhead (Forum #31293)
+{
+  my ($dev) = @_;
+  foreach my $fw (values(%defs)) {
+    next if(!$fw->{TYPE} || $fw->{TYPE} ne "FHEMWEB" || !$fw->{inform});
+    FW_Notify($fw, $dev);
+  }
 }
 
 ###################

@@ -7,6 +7,7 @@ var FW_isIE = (navigator.appVersion.indexOf("MSIE") > 0);
 var FW_isiOS = navigator.userAgent.match(/(iPad|iPhone|iPod)/);
 var FW_scripts = {}, FW_links = {};
 var FW_docReady = false;
+var FW_root = "/fhem";  // root
 
 // createFn returns an HTML Element, which may contain 
 // - setValueFn, which is called when data via longpoll arrives
@@ -61,9 +62,9 @@ FW_jqueryReadyFn()
 
 
   // Activate the widgets
-  var root = $("head").attr("root");
-  if(!root)
-    root = "/fhem";
+  var r = $("head").attr("root");
+  if(r)
+    FW_root = r;
   $("div.fhemWidget").each(function() {
     var dev=$(this).attr("dev");
     var cmd=$(this).attr("cmd");
@@ -72,7 +73,7 @@ FW_jqueryReadyFn()
     FW_replaceWidget(this, dev, $(this).attr("arg").split(","),
       $(this).attr("current"), rd, params[0], params.slice(1),
       function(arg) {
-        FW_cmd(root+"?cmd=set "+dev+(params[0]=="state" ? "":" "+params[0])+
+        FW_cmd(FW_root+"?cmd=set "+dev+(params[0]=="state" ? "":" "+params[0])+
                         " "+arg+"&XHR=1");
       });
   });
@@ -94,6 +95,20 @@ FW_jqueryReadyFn()
       $(this).find("td").last().attr("colspan", maxTd-tdCount.shift()+1);
     });
   });
+
+  // Replace the FORM-POST in detail-view by XHR
+  /* Inactive, as Internals and Attributes arent auto updated.
+  $("form input[type=submit]").click(function(e) {
+    var cmd = "";
+    $(this).parent().find("[name]").each(function() {
+      cmd += (cmd?"&":"")+$(this).attr("name")+"="+$(this).val();
+    });
+    if(cmd.indexOf("detail=") < 0)
+      return;
+    e.preventDefault();
+    FW_cmd(FW_root+"?"+cmd+"&XHR=1");
+  });
+  */
 
   FW_docReady = true;
 }
@@ -240,7 +255,9 @@ FW_doUpdate()
     FW_longpollOffset = nOff+1;
 
     log("Longpoll: "+(l.length>132 ? l.substring(0,132)+"...("+l.length+")":l));
-    var d = l.split("<<", 3);    // Complete arg
+    if(!l.length)
+      continue;
+    var d = JSON.parse(l);
     if(d.length != 3)
       continue;
 
@@ -374,8 +391,7 @@ FW_detailSelect(selEl)
     FW_queryValue('{AttrVal("'+devName+'","'+selVal+'","")}', newEl);
 
   if(cmd == "set")
-    FW_queryValue(
-      '{ReadingsVal("'+devName+'","'+selVal+'",Value("'+devName+'"))}', newEl);
+    FW_queryValue('{ReadingsVal("'+devName+'","'+selVal+'","")}', newEl);
 }
 
 function
@@ -759,10 +775,7 @@ function
 loadScript(sname, callback, force)
 {
   var h = document.head || document.getElementsByTagName('head')[0];
-  var r = h.getAttribute("root");
-  if(!r)
-    r = "/fhem";
-  sname = r+"/"+sname;
+  sname = FW_root+"/"+sname;
   if(FW_scripts[sname]) {
     if(FW_scripts[sname].loaded) {
       if(callback)
@@ -824,10 +837,7 @@ function
 loadLink(lname)
 {
   var h = document.head || document.getElementsByTagName('head')[0];
-  var r = h.getAttribute("root");
-  if(!r)
-    r = "/fhem";
-  lname = r+"/"+lname;
+  lname = FW_root+"/"+lname;
 
   var arr = h.getElementsByTagName("link");
   for(var i1=0; i1<arr.length; i1++)
