@@ -66,11 +66,14 @@ FW_jqueryReadyFn()
     root = "/fhem";
   $("div.fhemWidget").each(function() {
     var dev=$(this).attr("dev");
+    var cmd=$(this).attr("cmd");
     var rd=$(this).attr("reading");
+    var params = cmd.split(" ");
     FW_replaceWidget(this, dev, $(this).attr("arg").split(","),
-      $(this).attr("current"), rd,
+      $(this).attr("current"), rd, params[0], params.slice(1),
       function(arg) {
-        FW_cmd(root+"?cmd=set "+dev+(rd=="state" ? "":" "+rd)+" "+arg+"&XHR=1");
+        FW_cmd(root+"?cmd=set "+dev+(params[0]=="state" ? "":" "+params[0])+
+                        " "+arg+"&XHR=1");
       });
   });
 
@@ -366,17 +369,17 @@ FW_detailSelect(selEl)
   if(arg.length > selVal.length)
     vArr = arg.substr(selVal.length+1).split(","); 
 
-  var elName="val."+cmd+devName;
-  var newEl = FW_replaceWidget($(selEl).next(), devName, vArr);
+  var newEl = FW_replaceWidget($(selEl).next(), devName, vArr,undefined,selVal);
   if(cmd == "attr")
     FW_queryValue('{AttrVal("'+devName+'","'+selVal+'","")}', newEl);
 
   if(cmd == "set")
-    FW_queryValue('{ReadingsVal("'+devName+'","'+selVal+'","")}', newEl);
+    FW_queryValue(
+      '{ReadingsVal("'+devName+'","'+selVal+'",Value("'+devName+'"))}', newEl);
 }
 
 function
-FW_replaceWidget(oldEl, devName, vArr, currVal, reading, cmd)
+FW_replaceWidget(oldEl, devName, vArr, currVal, reading, set, params, cmd)
 {
   var newEl, wn;
   var elName = $(oldEl).attr("name");
@@ -384,13 +387,15 @@ FW_replaceWidget(oldEl, devName, vArr, currVal, reading, cmd)
     elName = $(oldEl).find("[name]").attr("name");
 
   if(vArr.length == 0) { //  No parameters, input field
-    newEl =FW_createTextField(elName,devName,["textField"],currVal,reading,cmd);
+    newEl = FW_createTextField(elName, devName, ["textField"], currVal,
+                               set, params, cmd);
     wn = "textField";
 
   } else {
     for(wn in FW_widgets) {
       if(FW_widgets[wn].createFn) {
-        newEl =FW_widgets[wn].createFn(elName,devName,vArr,currVal,reading,cmd);
+        newEl = FW_widgets[wn].createFn(elName, devName, vArr, currVal,
+                                        set, params, cmd);
         if(newEl)
           break;
       }
@@ -398,15 +403,28 @@ FW_replaceWidget(oldEl, devName, vArr, currVal, reading, cmd)
 
     if(!newEl) { // Select as fallback
      vArr.unshift("select");
-     newEl = FW_createSelect(elName, devName, vArr, currVal, reading, cmd);
+     newEl = FW_createSelect(elName, devName, vArr, currVal, set, params, cmd);
      wn = "select";
     }
   }
 
+  if(!newEl) { // Simple link
+    newEl = $('<div class="col3"><a style="cursor: pointer;">'+
+                set+' '+params.join(' ')+ '</a></div>');
+    $(newEl).click(function(arg) { cmd(params[0]) });
+    $(oldEl).replaceWith(newEl);
+    return newEl;
+  }
+
   $(newEl).addClass(wn+"_widget");
-  if(reading &&
-     $(newEl).find("[informId]").length == 0 && !$(newEl).attr("informId"))
-    $(newEl).attr("informId", devName);
+
+  if( $(newEl).find("[informId]").length == 0 && !$(newEl).attr("informId") ) {
+    if(reading && reading == "state")
+      $(newEl).attr("informId", devName);
+    else if(reading)
+      $(newEl).attr("informId", devName+"-"+reading);
+  }
+
   $(oldEl).replaceWith(newEl);
 
   if(newEl.activateFn) // CSS is not applied if newEl is not in the document
@@ -441,14 +459,14 @@ FW_querySetSelected(el, val)    // called by the attribute links
 
 /*************** TEXTFIELD **************/
 function
-FW_createTextField(elName, devName, vArr, currVal, reading, cmd)
+FW_createTextField(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length != 1 || vArr[0] != "textField")
+  if(vArr.length != 1 || vArr[0] != "textField" || (params && params.length))
     return undefined;
   
   var newEl = $("<div style='display:inline-block'>").get(0);
-  if(reading && reading != "state")
-    $(newEl).append(reading+":");
+  if(set && set != "state")
+    $(newEl).append(set+":");
   $(newEl).append('<input type="text" size="30">');
   var inp = $(newEl).find("input").get(0);
   if(elName)
@@ -463,9 +481,9 @@ FW_createTextField(elName, devName, vArr, currVal, reading, cmd)
 
 /*************** select **************/
 function
-FW_createSelect(elName, devName, vArr, currVal, reading, cmd)
+FW_createSelect(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length < 2 || vArr[0] != "select")
+  if(vArr.length < 2 || vArr[0] != "select" || (params && params.length))
     return undefined;
   var newEl = document.createElement('select');
   var vHash = {};
@@ -487,19 +505,20 @@ FW_createSelect(elName, devName, vArr, currVal, reading, cmd)
 
 /*************** noArg **************/
 function
-FW_createNoArg(elName, devName, vArr, currVal, reading, cmd)
+FW_createNoArg(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length != 1 || vArr[0] != "noArg")
+  if(vArr.length != 1 || vArr[0] != "noArg" || (params && params.length))
     return undefined;
   return document.createElement('div');
 }
 
 /*************** slider **************/
 function
-FW_createSlider(elName, devName, vArr, currVal, reading, cmd)
+FW_createSlider(elName, devName, vArr, currVal, set, params, cmd)
 {
   // min, step, max, float
-  if(vArr.length < 4 || vArr.length > 5 || vArr[0] != "slider")
+  if(vArr.length < 4 || vArr.length > 5 || vArr[0] != "slider" ||
+     (params && params.length))
     return undefined;
 
   var min = parseFloat(vArr[1]);
@@ -532,6 +551,8 @@ FW_createSlider(elName, devName, vArr, currVal, reading, cmd)
     offX = (currVal-min)*maxX/(max-min);
     sh.innerHTML = currVal;
     sh.setAttribute('style', 'left:'+offX+'px;');
+    if(elName)
+      slider.nextSibling.setAttribute('value', currVal);
   }
 
   function
@@ -596,9 +617,9 @@ FW_createSlider(elName, devName, vArr, currVal, reading, cmd)
 
 /*************** TIME **************/
 function
-FW_createTime(elName, devName, vArr, currVal, reading, cmd)
+FW_createTime(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length != 1 || vArr[0] != "time")
+  if(vArr.length != 1 || vArr[0] != "time" || (params && params.length))
     return undefined;
   var open="-", closed="+";
 
@@ -654,9 +675,9 @@ FW_createTime(elName, devName, vArr, currVal, reading, cmd)
     var ts = $(newEl).find(".timeSlider");
 
     hh = FW_createSlider(undefined, devName+"HH", ["slider", 0, 1, 12],
-                hhmm[0], undefined, function(arg) { tSet(0, arg) });
+                hhmm[0], undefined, params, function(arg) { tSet(0, arg) });
     mm = FW_createSlider(undefined, devName+"MM", ["slider", 0, 5, 55],
-                hhmm[1], undefined, function(arg) { tSet(1, arg) });
+                hhmm[1], undefined, params, function(arg) { tSet(1, arg) });
     $(ts).append("<br>"); $(ts).append(hh); hh.activateFn();
     $(ts).append("<br>"); $(ts).append(mm); mm.activateFn();
   });
@@ -666,9 +687,10 @@ FW_createTime(elName, devName, vArr, currVal, reading, cmd)
 
 /*************** MULTIPLE **************/
 function
-FW_createMultiple(elName, devName, vArr, currVal, reading, cmd)
+FW_createMultiple(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length < 2 || (vArr[0]!="multiple" && vArr[0]!="multiple-strict"))
+  if(vArr.length < 2 || (vArr[0]!="multiple" && vArr[0]!="multiple-strict") ||
+     (params && params.length))
     return undefined;
   
   var newEl = $('<input type="text" size="30" readonly>').get(0);

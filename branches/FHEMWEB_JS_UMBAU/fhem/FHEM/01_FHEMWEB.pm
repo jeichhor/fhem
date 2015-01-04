@@ -2485,19 +2485,24 @@ FW_widgetFallbackFn()
 
   # webCmd "temp 30" should remain text
   # noArg is needed for fhem.cfg.demo / Cinema
-  return "" if(!$values || $values eq "noArg" || $cmd =~ m/ /);
+  return "" if(!$values || $values eq "noArg");
 
-  my $txt;
+  my($reading) = split( ' ', $cmd, 2 );
+  my $current;
   if($cmd eq "desired-temp" || $cmd eq "desiredTemperature") {
-    $txt = ReadingsVal($d, $cmd, 20);
-    $txt =~ s/ .*//;        # Cut off Celsius
-    $txt = sprintf("%2.1f", int(2*$txt)/2) if($txt =~ m/[0-9.-]/);
+    $current = ReadingsVal($d, $cmd, 20);
+    $current =~ s/ .*//;        # Cut off Celsius
+    $current = sprintf("%2.1f", int(2*$current)/2) if($current =~ m/[0-9.-]/);
   } else {
-    $txt = ReadingsVal($d, $cmd, Value($d));
-    $txt =~ s/$cmd //;
+    $current = ReadingsVal($d, $reading, undef);
+    if( !defined($current) ) {
+      $reading = 'state';
+      $current = Value($d);
+    }
+    $current =~ s/$cmd //;
   }
-  return "<td><div class='fhemWidget' reading='$cmd' ".
-                "dev='$d' arg='$values' current='$txt'></div></td>";
+  return "<td><div class='fhemWidget' cmd='$cmd' reading='$reading' ".
+                "dev='$d' arg='$values' current='$current'></div></td>";
 }
 # Widgets END
 ###########################

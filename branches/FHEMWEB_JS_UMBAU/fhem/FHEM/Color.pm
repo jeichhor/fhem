@@ -17,79 +17,7 @@ Color_Initialize()
 sub
 FHEM_colorpickerInit()
 {
-  $data{webCmdFn}{colorpicker} = "FHEM_colorpickerFn";
   $data{FWEXT}{colorpicker}{SCRIPT} = "/jscolor/jscolor.js";
-}
-
-sub
-FHEM_colorpickerFn($$$$$)
-{
-  my ($FW_wname, $d, $FW_room, $cmd, $values) = @_;
-
-  my @args = split("[ \t]+", $cmd);
-
-  my @value = split( ',', $values );
-  return undef if($values !~ m/^colorpicker,([^,]*)/);
-
-  my $mode = $1;
-  $mode = "RGB" if( !defined($mode) );
-
-  if( $mode eq "CT" ) {
-    if( !$args[1] && $data{webCmdFn}{slider} ) {
-      no strict "refs";
-      my $values = "slider,". join( ',', @value[2..4] );
-      my $htmlTxt = &{$data{webCmdFn}{slider}}($FW_wname, $d, $FW_room, $cmd, $values);
-      use strict "refs";
-
-      return $htmlTxt;
-    }
-
-    return undef if( !$args[1] );
-  }
-
-  my $trigger = $cmd;                   #default trigger is the event from the reading with the same name as the command
-  my $cv = ReadingsVal($d,$cmd,"");     #get default value from this reading
-  if( !$cv ) {                          #if this reading does not exist ->
-    $trigger = "RGB";                   #  trigger name will be RGB
-    $cv = CommandGet("","$d $cmd");     #  get default value from get command
-  }
-
-  $cmd = "" if($cmd eq "state");
-  my $srf = $FW_room ? "&room=$FW_room" : "";
-  if( $args[1] ) {
-    my $c = "cmd=set $d $cmd$srf";
-
-    if( $mode eq "CT" ) {
-      my $ct = $args[1];
-      $ct = int(1000000/$args[1]) if( $ct > 1000 );
-      my ($r, $g, $b) = Color::ct2rgb( $ct );
-      $args[1] = Color::rgb2hex( $r, $g, $b );
-    }
-
-    return '<td align="center">'.
-             "<div onClick=\"FW_cmd('$FW_ME?XHR=1&$c')\" style=\"width:32px;height:19px;".
-             'border:1px solid #fff;border-radius:8px;background-color:#'. $args[1] .';"></div>'.
-           '</td>' if( AttrVal($FW_wname, "longpoll", 1));
-
-    return '<td align="center">'.
-             "<a href=\"$FW_ME?$c\">".
-               '<div style="width:32px;height:19px;'.
-               'border:1px solid #fff;border-radius:8px;background-color:#'. $args[1] .';"></div>'.
-             '</a>'.
-           '</td>';
-  } elsif(AttrVal($d,"realtimePicker",0)) {
-    my $c = "$FW_ME?XHR=1&cmd=set $d $cmd %$srf";
-    my $ci = $c;
-    $ci = "$FW_ME?XHR=1&cmd=set $d $cmd % : transitiontime 0 : noUpdate$srf" if($defs{$d}->{TYPE} eq "HUEDevice");
-    return '<td align="center">'.
-             "<input maxlength='6' size='6' id='colorpicker.$d-$trigger' class=\"color {pickerMode:'$mode',pickerFaceColor:'transparent',pickerFace:3,pickerBorder:0,pickerInsetColor:'red',command:'$ci',onImmediateChange:'colorpicker_setColor(this)'}\" value='$cv' onChange='colorpicker_setColor(this,\"$mode\",\"$c\")'>".
-           '</td>';
-  } else {
-    my $c = "$FW_ME?XHR=1&cmd=set $d $cmd %$srf";
-    return '<td align="center">'.
-             "<input maxlength='6' size='6' id='colorpicker.$d-$trigger' class=\"color {pickerMode:'$mode',pickerFaceColor:'transparent',pickerFace:3,pickerBorder:0,pickerInsetColor:'red'}\" value='$cv' onChange='colorpicker_setColor(this,\"$mode\",\"$c\")'>".
-           '</td>';
-  }
 }
 
 my %dim_values = (
@@ -386,6 +314,10 @@ ct2rgb($)
   my ($ct) = @_;
 
   # calculation from http://www.tannerhelland.com/4435/convert-temperature-rgb-algorithm-code
+
+  # kelvin -> mired
+  $ct = 1000000/$ct if( $ct > 1000 );
+
   # adjusted by 1000K
   my $temp = (1000000/$ct)/100 + 10;
 
@@ -416,5 +348,82 @@ ct2rgb($)
 
   return( $r, $g, $b );
 }
+
+
+sub
+devStateIcon($$@)
+{
+  my($hash,$type,$rgb,$pct,$onoff) = @_;
+  $hash = $::defs{$hash} if( ref($hash) ne 'HASH' );
+
+  return undef if( !$hash );
+
+  my $name = $hash->{NAME};
+
+  if( $type && $type eq "switch" ) {
+    my $value;
+    if( $onoff ) {
+      $value = ::ReadingsVal($name,$onoff,undef);
+      $value = ::CommandGet("","$name $onoff") if( !$value );
+      $value = "on" if( $value && $value eq "1" );
+      $value = "off" if( $value && $value eq "0" );
+
+    } else {
+      $value = ::Value($name);
+    }
+
+    my $s = $value;
+
+    return ".*:light_question" if( !$s );
+    return ".*:$s:toggle";
+
+  } elsif( $type && $type eq "dimmer" ) {
+    my $percent;
+    if( $pct ) {
+      $percent = ::ReadingsVal($name,$pct, undef);
+      $percent = ::CommandGet("","$name $pct") if( !$percent );
+
+    } else {
+      $percent = ::Value($name);
+    }
+
+    return ".*:light_question" if( !defined($percent) );
+
+    my $s = $dim_values{int($percent/7)};
+    $s="off" if( $percent eq "0" );
+    $s="on" if( $percent eq "100" );
+
+    return ".*:$s:toggle";
+
+  } elsif( $type && $type eq "rgb" ) {
+    my $value;
+    if( $rgb ) {
+      $value = ::ReadingsVal($name,$rgb,undef);
+      $value = ::CommandGet("","$name $rgb") if( !$value );
+
+    } else {
+      $value = ::Value($name);
+
+    }
+
+    return ".*:light_question" if( !defined($value) );
+    return ".*:on:toggle" if( $value eq "on" );
+    return ".*:off:toggle" if( $value eq "off" );
+
+    my $s = 'on';
+    if( $pct ) {
+      my $percent = ::ReadingsVal($name,$pct, undef);
+      $percent = ::CommandGet("","$name $pct") if( !$percent );
+      return ".*:off:toggle" if( $percent eq "off" );
+      $percent = 100 if( $percent eq "on" );
+      $s = $dim_values{int($percent/7)} if( $percent && $percent < 100 );
+    }
+
+    return ".*:$s@#$value:toggle";
+  }
+
+  return undef;
+}
+
 
 1;
