@@ -210,6 +210,58 @@ FW_okDialog(txt)
   });
 }
 
+function
+FW_menu(evt, el, arr, dis, fn, embedEl)
+{
+  evt.stopPropagation();
+  if($("#fwmenu").length) {
+    delfwmenu();
+    return;
+  }
+
+  var html = '<ul id="fwmenu">';
+  for(var i=0; i<arr.length; i++) {
+    html+='<li class="'+ ((dis && dis[i]) ? 'ui-state-disabled' : '')+'">'+
+            '<a row="'+i+'" href="#">'+arr[i]+'</a></li>';
+  }
+  html += '</ul>';
+  $("body").append(html);
+
+  function
+  delfwmenu()
+  {
+    $("ul#fwmenu").remove();
+    $('html').unbind('click.fwmenu');
+  }
+
+  $("#fwmenu")
+    .menu({
+      select: function(e,ui) {
+        e.stopPropagation();
+        fn($(e.currentTarget).find("[row]").attr("row"));
+        delfwmenu();
+      }
+    });
+
+  var off = $(el).offset();
+  if(embedEl) {
+    var embOff = $(embedEl).offset();
+    off.top += embOff.top;
+    off.left += embOff.left;
+  }
+  var dH = $("#fwmenu").height(), dW = $("#fwmenu").width(), 
+      wH = $(window).height(), wW = $(window).width();
+  var ey = off.top+dH+20, ex = off.left+dW;
+  if(ex>wW && ey>wH) { off.top -= dH; off.left -= (dW+16);
+  } else if(ey > wH) { off.top -= dH; off.left += 20;
+  } else if(ex > wW) {                off.left -= (dW+16);
+  } else {             off.top += 20;
+  }
+
+  $("#fwmenu").css(off);
+  $('html').bind('click.fwmenu', function() { delfwmenu(); });
+}
+
 
 function
 FW_replaceLink(el)
@@ -254,7 +306,7 @@ FW_doUpdate()
     var l = input.substr(FW_longpollOffset, nOff-FW_longpollOffset);
     FW_longpollOffset = nOff+1;
 
-    log("Longpoll: "+(l.length>132 ? l.substring(0,132)+"...("+l.length+")":l));
+    log("Rcvd: "+(l.length>132 ? l.substring(0,132)+"...("+l.length+")":l));
     if(!l.length)
       continue;
     var d = JSON.parse(l);
