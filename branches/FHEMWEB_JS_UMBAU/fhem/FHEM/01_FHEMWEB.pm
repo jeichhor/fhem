@@ -16,7 +16,7 @@ sub FW_answerCall($);
 sub FW_dev2image($;$);
 sub FW_devState($$@);
 sub FW_digestCgi($);
-sub FW_directNotify($);
+sub FW_directNotify($$);
 sub FW_doDetail($);
 sub FW_fatal($);
 sub FW_fileList($);
@@ -2322,12 +2322,20 @@ FW_Notify($$)
 }
 
 sub
-FW_directNotify($) # Notify without the event overhead (Forum #31293)
+FW_directNotify($$) # Notify without the event overhead (Forum #31293)
 {
-  my ($dev) = @_;
-  foreach my $fw (values(%defs)) {
-    next if(!$fw->{TYPE} || $fw->{TYPE} ne "FHEMWEB" || !$fw->{inform});
-    FW_Notify($fw, $dev);
+  my ($dev, $msg) = @_;
+  foreach my $ntfy (values(%defs)) {
+    next if(!$ntfy->{TYPE} ||
+            $ntfy->{TYPE} ne "FHEMWEB" ||
+            !$ntfy->{inform} ||
+            !$ntfy->{inform}{devices}{$dev});
+    if(!addToWritebuffer($ntfy, FW_longpollInfo($dev, $msg, "")."\n")){
+      my $name = $ntfy->{NAME};
+      Log3 $name, 4, "Closing connection $name due to full buffer in FW_Notify";
+      TcpServer_Close($ntfy);
+      delete($defs{$name});
+    }
   }
 }
 

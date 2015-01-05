@@ -73,7 +73,7 @@ attr Livingroom icon light_pendant_light
 attr Livingroom model fs20di
 attr Livingroom room Light
 attr Livingroom webCmd dim
-define AllLights structure Light Alarm Livingroom Office Outdoor
+define AllLights structure Light Alarm Livingroom Office Outdoor CT RGB
 attr AllLights devStateIcon undefined:light_question
 attr AllLights group Structure
 attr AllLights icon light_light
@@ -290,6 +290,8 @@ attr rr_Baby room Residents
 attr rr_Baby sortby 0
 attr rr_Baby webCmd state
 define RGB readingsProxy RGB
+attr RGB userattr Light Light_map structexclude
+attr RGB Light AllLights
 attr RGB alias RGB Light
 attr RGB comment light with the ability to change RGB color
 attr RGB devStateIcon {Color::devStateIcon("RGB","rgb","rgb","state")}
@@ -301,6 +303,8 @@ attr RGB webCmd hue:rgb:rgb ff0000:rgb 00ff00:rgb 0000ff:rgb ffffff:on:off
 define colorInit notify global:INITIALIZED {use Color;;Color_Initialize()}
 attr colorInit room hidden
 define CT readingsProxy CT
+attr CT userattr Light Light_map structexclude
+attr CT Light AllLights
 attr CT alias CT Light
 attr CT comment light with the ability to change the color temperature
 attr CT devStateIcon {Color::devStateIcon("CT","rgb","rgb","state")}
