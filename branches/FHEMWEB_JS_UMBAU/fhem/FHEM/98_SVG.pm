@@ -33,7 +33,7 @@ sub SVG_doround($$$);
 sub SVG_fmtTime($$);
 sub SVG_pO($);
 sub SVG_readgplotfile($$$);
-sub SVG_render($$$$$$$$;$$);
+sub SVG_render($$$$$$$$$;$$);
 sub SVG_showLog($);
 sub SVG_substcfg($$$$$$);
 sub SVG_time_align($$);
@@ -44,6 +44,8 @@ sub SVG_getData($$$$$);
 sub SVG_sel($$$;$$);
 
 my %SVG_devs;       # hash of from/to entries per device
+my $SVG_id=0;
+
 
 #####################################
 sub
@@ -144,6 +146,13 @@ SVG_getplotsize($)
                 $FW_webArgs{plotsize} : AttrVal($d,"plotsize",$FW_plotsize);
 }
 
+sub
+SVG_isEmbed($)
+{
+  return (AttrVal($FW_wname, "plotEmbed",
+                        $FW_userAgent !~ m/(iPhone|iPad|iPod).*OS (8|9)/));
+}
+
 ##################
 sub
 SVG_FwFn($$$$)
@@ -151,6 +160,11 @@ SVG_FwFn($$$$)
   my ($FW_wname, $d, $room, $pageHash) = @_; # pageHash is set for summaryFn.
   my $hash = $defs{$d};
   my $ret = "";
+
+  if(!$pageHash || !$pageHash->{jsLoaded}) {
+    $ret .= "<script type='text/javascript' src='$FW_ME/pgm2/svg.js'></script>";
+    $pageHash->{jsLoaded} = 1 if($pageHash);
+  }
 
   if(AttrVal($FW_wname, "plotmode", "SVG") eq "jsSVG") {
 
@@ -196,8 +210,7 @@ SVG_FwFn($$$$)
     my ($w, $h) = split(",", SVG_getplotsize($d));
     $ret .= "<div class=\"SVGplot SVG_$d\">";
 
-    if(AttrVal($FW_wname, "plotEmbed",
-                        $FW_userAgent !~ m/(iPhone|iPad|iPod).*OS (8|9)/)) {
+    if(SVG_isEmbed($FW_wname)) {
       $ret .= "<embed src=\"$arg\" type=\"image/svg+xml\" " .
             "width=\"$w\" height=\"$h\" name=\"$d\"/>\n";
 
@@ -678,9 +691,6 @@ SVG_substcfg($$$$$$)
   # interpret title and label as a perl command and make
   # to all internal values e.g. $value.
 
-  my $oll = $attr{global}{verbose};
-  $attr{global}{verbose} = 0;         # Else the filenames will be Log'ged
-
   my $ldt = $defs{$defs{$wl}{LOGDEVICE}}{TYPE}
         if($defs{$wl} && $defs{$wl}{LOGDEVICE});
   $ldt = "" if(!defined($ldt));
@@ -701,7 +711,6 @@ SVG_substcfg($$$$$$)
       $_ = AnalyzeCommand(undef, "{ $_ }");
     }
   }
-  $attr{global}{verbose} = $oll;
 
   my $gplot_script = join("", @{$cfg});
   $gplot_script .=  $plot if(!$splitret);
@@ -1013,8 +1022,9 @@ SVG_doShowLog($$$$;$$)
       close(CFH);
 
     } else {
+      my $da = SVG_getData($wl, $f, $t, $srcDesc, 0); # substcfg needs it(!)
       ($cfg, $plot) = SVG_substcfg(1, $wl, $cfg, $plot, $file, "<OuT>");
-      my $ret = SVG_render($wl, $f, $t, $cfg,
+      my $ret = SVG_render($wl, $f, $t, $cfg, $da,
                         $plot, $FW_wname, $FW_cssdir, $srcDesc,
                         $styleW, $styleH);
       $internal_data = "";
@@ -1148,12 +1158,13 @@ SVG_getSteps($$$)
   return ($step, $mi, $ma);
 }
 sub
-SVG_render($$$$$$$$;$$)
+SVG_render($$$$$$$$$;$$)
 {
   my $name = shift;  # e.g. wl_8
   my $from = shift;  # e.g. 2008-01-01
   my $to = shift;    # e.g. 2009-01-01
   my $confp = shift; # lines from the .gplot file, w/o FileLog and plot
+  my $da = shift;    # data pointer array
   my $plot = shift;  # Plot lines from the .gplot file
   my $parent_name = shift;  # e.g. FHEMWEB instance name
   my $parent_dir  = shift;  # FW_dir
@@ -1193,17 +1204,16 @@ SVG_render($$$$$$$$;$$)
 
 
   ######################
-  # Html Header
+  # SVG Header
+  my $svghdr = 'version="1.1" xmlns="http://www.w3.org/2000/svg" '.
+               'xmlns:xlink="http://www.w3.org/1999/xlink" '.
+               'id="SVGPLOT_'.(++$SVG_id).'"'.$filter;
   if(!$styleW) {
     SVG_pO '<?xml version="1.0" encoding="UTF-8"?>';
     SVG_pO '<!DOCTYPE svg>';
-    SVG_pO '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" '.
-         'xmlns:xlink="http://www.w3.org/1999/xlink" '.$filter.'>';
+    SVG_pO "<svg $svghdr>";
   } else {
-    SVG_pO '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" '.
-             'xmlns:xlink="http://www.w3.org/1999/xlink" '.
-             "style='width:${styleW}px; height:${styleH}px;' ".
-             '>';
+    SVG_pO "<svg $svghdr style='width:${styleW}px; height:${styleH}px;'>";
   }
 
   my $prf = AttrVal($parent_name, "stylesheetPrefix", "");
@@ -1236,17 +1246,6 @@ SVG_render($$$$$$$$;$$)
   $title =~ s/>/&gt;/g;
   SVG_pO "<text id=\"svg_title\" x=\"$off1\" y=\"$off2\" " .
         "class=\"title\" text-anchor=\"middle\">$title</text>";
-
-  ######################
-  # Copy and Paste labels, hidden by default
-  SVG_pO "<text id=\"svg_paste\" x=\"" .
-        ($ow-$axis_width-$nr_right_axis*$axis_width) . "\" y=\"$off2\" " .
-        "onclick=\"parent.svg_paste(evt)\" " .
-        "class=\"paste\" text-anchor=\"end\"> </text>";
-  SVG_pO "<text id=\"svg_copy\" x=\"" .
-        ($ow-$nr_right_axis*$axis_width) . "\" y=\"$off2\" " .
-        "onclick=\"parent.svg_copy(evt)\" " .
-        "class=\"copy\" text-anchor=\"end\"> </text>";
 
   ######################
   # Left label = ylabel and right label = y2label
@@ -1301,7 +1300,6 @@ SVG_render($$$$$$$$;$$)
   my ($dxp, $dyp) = (\(), \());
 
   my ($d, $v, $ld, $lv) = ("","","","");
-  my $da = SVG_getData($name, $from, $to, $srcDesc, 0);
   for(my $dIdx=0; $dIdx<@{$da}; $dIdx++) {
     my $lIdx = 0;
     $idx = $srcDesc->{rev}{$dIdx}{$lIdx};
@@ -1364,7 +1362,7 @@ SVG_render($$$$$$$$;$$)
   }
 
   $dxp = $hdx[0];
-  if(($dxp && int(@{$dxp}) < 2 && !$tosec) ||   # not enough data and no range...
+  if(($dxp && int(@{$dxp}) < 2 && !$tosec) ||  # not enough data and no range...
      (!$tmul && !$dxp)) {
     SVG_pO "</svg>";
     return $SVG_RET;
@@ -1842,13 +1840,15 @@ SVG_render($$$$$$$$;$$)
     }
     my $style = $conf{lStyle}[$i];
     $style =~ s/class="/class="legend /;
-    SVG_pO "<text title=\"$desc\" ".
-          "onclick=\"parent.svg_labelselect(evt)\" line_id=\"line_$i\" " .
+    SVG_pO "<text title=\"$desc\" line_id=\"line_$i\" " .
           "x=\"$txtoff1\" y=\"$txtoff2\" text-anchor=\"end\" $style>$t</text>";
     $txtoff2 += $th;
   }
 
+  my $fnName = SVG_isEmbed($FW_wname) ? "parent.window.svg_init" : "svg_init";
 
+  SVG_pO "<script type='text/javascript'>if(typeof $fnName == 'function') ".
+                "$fnName('SVGPLOT_$SVG_id')</script>";
   SVG_pO "</svg>";
   return $SVG_RET;
 }

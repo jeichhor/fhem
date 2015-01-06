@@ -707,7 +707,6 @@ FW_answerCall($)
   my $jsTemplate = '<script type="text/javascript" src="%s"></script>';
   FW_pO sprintf($jsTemplate, "$FW_ME/pgm2/jquery.min.js");
   FW_pO sprintf($jsTemplate, "$FW_ME/pgm2/jquery-ui.min.js");
-  FW_pO sprintf($jsTemplate, "$FW_ME/pgm2/svg.js") if($FW_plotmode eq "SVG");
 
   ########################
   # FW Extensions

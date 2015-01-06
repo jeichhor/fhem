@@ -213,7 +213,8 @@ FW_okDialog(txt)
 function
 FW_menu(evt, el, arr, dis, fn, embedEl)
 {
-  evt.stopPropagation();
+  if(!embedEl)
+    evt.stopPropagation();
   if($("#fwmenu").length) {
     delfwmenu();
     return;
@@ -234,12 +235,14 @@ FW_menu(evt, el, arr, dis, fn, embedEl)
     $('html').unbind('click.fwmenu');
   }
 
+  var wt = $(window).scrollTop();
   $("#fwmenu")
     .menu({
-      select: function(e,ui) {
+      select: function(e,ui) { // changes the scrollTop();
         e.stopPropagation();
         fn($(e.currentTarget).find("[row]").attr("row"));
         delfwmenu();
+        setTimeout(function(){ $(window).scrollTop(wt) }, 1); // Bug in select?
       }
     });
 
