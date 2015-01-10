@@ -19,7 +19,8 @@ var FW_widgets = {
   noArg:             { createFn:FW_createNoArg     },
   multiple:          { createFn:FW_createMultiple  },
   "multiple-strict": { createFn:FW_createMultiple  },
-  textfield:         { createFn:FW_createTextField }
+  textfield:         { createFn:FW_createTextField },
+  "textfield-long":  { createFn:FW_createTextField }
 };
 
 window.onbeforeunload = function(e)
@@ -31,6 +32,7 @@ window.onbeforeunload = function(e)
 function
 FW_jqueryReadyFn()
 {
+  FW_docReady = true;
   FW_serverGenerated = document.body.getAttribute("generated");
   if(document.body.getAttribute("longpoll"))
     setTimeout("FW_longpoll()", 100);
@@ -110,7 +112,6 @@ FW_jqueryReadyFn()
   });
   */
 
-  FW_docReady = true;
 }
 
 
@@ -201,7 +202,7 @@ FW_okDialog(txt)
   $(div).html(txt);
   $("body").append(div);
   $(div).dialog({
-    dialogClass:"no-close", modal:true, width:"auto", 
+    dialogClass:"no-close", modal:true, width:"auto", closeOnEscape:true, 
     maxWidth:$(window).width()*0.9, maxHeight:$(window).height()*0.9,
     buttons: [{text:"OK", click:function(){
       $(this).dialog("close");
@@ -532,9 +533,13 @@ FW_querySetSelected(el, val)    // called by the attribute links
 function
 FW_createTextField(elName, devName, vArr, currVal, set, params, cmd)
 {
-  if(vArr.length != 1 || vArr[0] != "textField" || (params && params.length))
+  if(vArr.length != 1 ||
+     (vArr[0] != "textField" && vArr[0] != "textField-long") ||
+     (params && params.length))
     return undefined;
   
+  var is_long = (vArr[0] == "textField-long");
+
   var newEl = $("<div style='display:inline-block'>").get(0);
   if(set && set != "state")
     $(newEl).append(set+":");
@@ -547,6 +552,30 @@ FW_createTextField(elName, devName, vArr, currVal, set, params, cmd)
   if(cmd)
     $(inp).blur(function() { cmd($(inp).val()) });
   newEl.setValueFn = function(arg){ $(inp).val(arg) };
+
+  var myFunc = function(){
+    $('body').append(
+      '<div id="editdlg" style="display:none">'+
+        '<textarea id="td_longText" rows="25" cols="60" style="width:99%"/>'+
+      '</div>');
+
+    $("#td_longText").val($(inp).val());
+
+    $('#editdlg').dialog(
+      { modal:true, closeOnEscape:true, width:$(window).width()*3/4,
+        maxHeight:$(window).height()*3/4,
+        buttons:[
+        { text:"Cancel", click:function(){ $('#editdlg').remove(); }},
+        { text:"OK", click:function(){
+          var res=$("#td_longText").val();
+          $('#editdlg').remove();
+          $(inp).val(res);
+        }}]});
+  };
+
+  if( is_long )
+    $(newEl).click(myFunc);
+
   return newEl;
 }
 

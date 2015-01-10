@@ -3074,18 +3074,23 @@ FW_widgetOverride($$)
           <li>if the modifier is ":time", then a javascript driven timepicker is
             displayed.</li>
           <li>if the modifier is ":textField", an input field is displayed.</li>
+          <li>if the modifier is ":textField-long", is like textField, but upon
+            clicking on the input field a textArea (60x25) will be opened.</li>
+
           <li>if the modifier is of the form
             ":slider,&lt;min&gt;,&lt;step&gt;,&lt;max&gt;[,1]", then a
             javascript driven slider is displayed. The optional ,1 at the end
             avoids the rounding of floating-point numbers.</li>
-
           <li>if the modifier is of the form ":multiple,val1,val2,...", then
             multiple values can be selected and own values can be written, the
             result is comma separated.</li>
-          <li>if the modifier is of the form ":multiple-strict,val1,val2,...", then
-            multiple values can be selected and no new values can be added, the
-            result is comma separated.</li>
-
+          <li>if the modifier is of the form ":multiple-strict,val1,val2,...",
+            then multiple values can be selected and no new values can be
+            added, the result is comma separated.</li>
+          <li>if the modifier is of the form ":knob,min:1,max:100,...", then
+            the jQuery knob widget will be displayed. The parameters are
+            specified as a comma separated list of key:value pairs, where key
+            does not have to contain the "data-" prefix.</li>
           <li>else a dropdown with all the modifier values is displayed</li>
         </ul>
         If this attribute is specified for a FHEMWEB instance, then it is
@@ -3093,6 +3098,7 @@ FW_widgetOverride($$)
         <ul>
           attr FS20dev widgetOverride on-till:time<br>
           attr WEB widgetOverride room:textField<br>
+          attr dimmer widgetOverride dim:knob,min:1,max:100,step:1,linecap:round<br>
         </ul>
         </li>
         <br>
@@ -3640,13 +3646,17 @@ FW_widgetOverride($$)
         vorgesehene Widgets aendern kann.
         <ul>
           <li>Ist der Modifier ":noArg", wird kein weiteres Eingabefeld
-              angezeigt.</li>
+            angezeigt.</li>
 
           <li>Ist der Modifier ":time", wird ein in Javaskript geschreibenes
-              Zeitauswahlmen&uuml; angezeigt.</li>
+            Zeitauswahlmen&uuml; angezeigt.</li>
 
           <li>Ist der Modifier ":textField", wird ein Eingabefeld
-              angezeigt.</li>
+            angezeigt.</li>
+
+          <li>Ist der Modified ":textField-long" ist wie textField, aber beim
+            Click im Eingabefeld ein Dialog mit einer HTML textarea
+            (60x25) wird ge&ouml;ffnet.</li>
 
           <li>Ist der Modifier in der Form
             ":slider,&lt;min&gt;,&lt;step&gt;,&lt;max&gt;[,1]", so wird ein in
@@ -3661,8 +3671,15 @@ FW_widgetOverride($$)
             Mehrfachauswahl m&ouml;glich, es k&ouml;nnen jedoch keine neuen
             Werte definiert werden. Das Ergebnis ist Komma-separiert.</li>
 
-          <li>In allen anderen F&auml;llen erscheint ein Dropdown mit allen
-            Modifier Werten.</li>
+          <li>Ist der Modifier ":knob,min:1,max:100,...", dass ein
+            jQuery knob Widget wird angezeigt. Die Parameter werden als eine
+            Komma separierte Liste von Key:Value Paaren spezifiziert, wobei das
+            data- Pr&auml;fix entf&auml;llt. </li>
+
+          <li>In allen anderen F&auml;llen (oder falls der Modified explizit
+            mit :select anfaegt) erscheint ein HTML select mit allen Modifier
+            Werten.</li>
+
         </ul>
         Falls das Attribut f&uuml;r eine WEB Instanz gesetzt wurde, dann wird
         es bei allen von diesem Web-Instan angezeigten Ger&auml;ten angewendet.
@@ -3670,6 +3687,7 @@ FW_widgetOverride($$)
         <ul>
           attr FS20dev widgetOverride on-till:time<br>
           attr WEB widgetOverride room:textField<br>
+          attr dimmer widgetOverride dim:knob,min:1,max:100,step:1,linecap:round<br>
         </ul>
         </li><br>
 

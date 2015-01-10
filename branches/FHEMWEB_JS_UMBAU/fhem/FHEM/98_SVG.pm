@@ -612,6 +612,16 @@ SVG_WriteGplot($)
   return 0;
 }
 
+#######################################################
+# srcDesc:
+# - {all}  : space separated plot arguments, in the file order, without devname
+# - {order}: unique name of the devs (FileLog,etc) in the .gplot order
+# - {src}{X}: hash (X is an order element), consisting of
+#     {arg}: plot arguments for one dev, space separated
+#     {idx}: number of lines requested from the same source
+#     {num}: number or this src in the order array
+# - {rev}{orderIdx}{localIdx} = N: reverse lookup of the plot argument index,
+#      using {src}{X}{num} as orderIdx and {src}{X}{idx} as localIdx
 sub
 SVG_readgplotfile($$$)
 {
@@ -701,14 +711,15 @@ SVG_substcfg($$$$$$)
   my $fileesc = $file;
   $fileesc =~ s/\\/\\\\/g;      # For Windows, by MarkusRR
   my $title = AttrVal($wl, "title", "\"$fileesc\"");
+  my $allowed = AttrVal($FW_wname,"allowedCommands",undef);
 
-  $title = AnalyzeCommand(undef, "{ $title }");
+  $title = AnalyzeCommand(undef, "{ $title }", $allowed);
   my $label = AttrVal($wl, "label", undef);
   my @g_label;
   if ($label) {
     @g_label = split("::",$label);
     foreach (@g_label) {
-      $_ = AnalyzeCommand(undef, "{ $_ }");
+      $_ = AnalyzeCommand(undef, "{ $_ }", $allowed);
     }
   }
 
@@ -1047,19 +1058,51 @@ sub
 SVG_getData($$$$$)
 {
   my ($d, $f,$t,$srcDesc,$showData) = @_;
-  my (@da, $ret); 
+  my (@da, $ret, @vals); 
+  my @keys = ("min","max","avg","cnt","currval","mindate","maxdate","lastraw");
 
   foreach my $src (@{$srcDesc->{order}}) {
+    my $s = $srcDesc->{src}{$src};
     my $fname = ($src eq $defs{$d}{LOGDEVICE} ? $defs{$d}{LOGFILE} : "CURRENT");
-    my $cmd = "get $src $fname INT $f $t ".$srcDesc->{src}{$src}{arg};
+    my $cmd = "get $src $fname INT $f $t ".$s->{arg};
     FW_fC($cmd);
     if($showData) {
       $ret .= "\n$cmd\n\n";
       $ret .= $$internal_data;
     } else {
       push(@da, $internal_data);
+
+      for(my $i = 0; $i<=$s->{idx}; $i++) {
+        my %h;
+        foreach my $k (@keys) {
+          $h{$k} = $data{$k.($i+1)};
+        }
+        push @vals, \%h;
+      }
+
     }
   }
+
+  # Reorder the $data{maxX} stuff
+  my ($min, $max) = (999999, -999999);
+  my $no = int(keys %{$srcDesc->{rev}});
+  for(my $oi = 0; $oi < $no; $oi++) {
+    my $nl = int(keys %{$srcDesc->{rev}{$oi}});
+    for(my $li = 0; $li < $nl; $li++) {
+      my $r = $srcDesc->{rev}{$oi}{$li}+1;
+      my $val = shift @vals;
+      foreach my $k (@keys) {
+        $min = $val->{$k}
+                if($k eq "min" && defined($val->{$k}) && $val->{$k} < $min);
+        $max = $val->{$k}
+                if($k eq "max" && defined($val->{$k}) && $val->{$k} > $max);
+        $data{"$k$r"} = $val->{$k};
+      }
+    }
+  }
+  $data{maxAll} = $max;
+  $data{minAll} = $min;
+
   return $ret if($showData);
   return \@da;
 }
@@ -1500,6 +1543,7 @@ SVG_render($$$$$$$$$;$$)
 
   my (%hstep,%htics,%axdrawn);
 
+  my $allowed = AttrVal($FW_wname,"allowedCommands",undef);
   #-- yrange handling for axes x1y1..x1y8
   for my $idx (0..7)  {
     my $a = "x1y".($idx+1);
@@ -1507,10 +1551,15 @@ SVG_render($$$$$$$$$;$$)
     my $yra="y".($idx+1)."range";
     $yra="yrange" if ($yra eq "y1range");  
     #-- yrange is specified in plotfile
-    if($conf{$yra} && $conf{$yra} =~ /\[(.*):(.*)\]/) {
-      $hmin{$a} = $1 if($1 ne "");
-      $hmax{$a} = $2 if($2 ne "");
+    if($conf{$yra}) {
+      $conf{$yra} = AnalyzeCommand(undef, $1, $allowed) 
+                         if($conf{$yra} =~ /^({.*})$/);
+      if($conf{$yra} =~ /\[(.*):(.*)\]/) {
+        $hmin{$a} = $1 if($1 ne "");
+        $hmax{$a} = $2 if($2 ne "");
+      }
     }
+
     #-- tics handling
     my $yt="y".($idx+1)."tics";
     $yt="ytics" if ($yt eq"y1tics");
@@ -2084,6 +2133,9 @@ plotAsPng(@)
                 set title &lt;L1&gt;<br></li>
           </ul></li>
       </ul>
+      The value minAll and maxAll (representing the minimum/maximum over all
+      values) is also available from the data hash.
+
       </li>
 
     <a name="title"></a>
@@ -2135,6 +2187,9 @@ plotAsPng(@)
       regexp switch.on, and "0" for the regexp switch.off.<br>
       Write .gplot file again<br>
       </ul></li>
+    <li>If the range is of the form {...}, then it will be evaluated with perl.
+        The result is a string, and must have the form [min:max]
+      </li>
   </ul>
   The visibility of the ploteditor can be configured with the FHEMWEB attribute
   <a href="#ploteditor">ploteditor</a>.
@@ -2252,7 +2307,7 @@ plotAsPng(@)
       k&ouml;nnen ebenfalls die Werte der individuellen Kurve f&uuml;r min,
       max, mindate, maxdate, avg, cnt, sum, currval (letzter Wert) und currdate
       (letztes Datum) durch Zugriff der entsprechenden Werte &uuml;ber das
-      DataHash verwendet werden. Siehe untenstehendes Beispiel:<br>
+      data Hash verwendet werden. Siehe untenstehendes Beispiel:<br>
       <ul>
         <li>Beschriftunng der rechten und linken y-Achse:<br>
           <ul>
@@ -2274,6 +2329,8 @@ plotAsPng(@)
           </ul>
           </li>
       </ul>
+      Die Werte minAll und maxAll (die das Minimum/Maximum aller Werte
+      repr&auml;sentieren) sind ebenfals im data hash vorhanden.
       </li>
 
     <a name="title"></a>
@@ -2338,6 +2395,9 @@ plotAsPng(@)
         achten!).<br>
         .gplot-Datei erneut speichern<br>
       </ul>
+      </li>
+    <li>Falls Range der Form {...} entspricht, dann wird sie als Perl -
+      Expression ausgewertet. Das Ergebnis muss in der Form [min:max] sein.
       </li>
   </ul>
   Die sichtbarkeit des  Plot-Editors kann mit dem FHEMWEB Attribut <a
