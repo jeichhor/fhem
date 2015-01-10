@@ -30,7 +30,7 @@ use vars qw(%FW_hiddenroom);
 use vars qw(%FW_visibleDeviceHash);
 use vars qw(%FW_webArgs); # all arguments specified in the GET
 
-my @mapping_attrs = qw( commands mapping nameIcon cellStyle nameStyle valueColumn valueColumns valueFormat valuePrefix valueSuffix valueIcon valueStyle );
+my @mapping_attrs = qw( commands:textField-long mapping:textField-long nameIcon:textField-long cellStyle:textField-long nameStyle:textField-long valueColumn:textField-long valueColumns:textField-long valueFormat:textField-long valuePrefix:textField-long valueSuffix:textField-long valueIcon:textField-long valueStyle:textField-long );
 
 sub readingsGroup_Initialize($)
 {
@@ -96,7 +96,19 @@ readingsGroup_updateDevices($;$)
     } else {
       my @device = split(":", $param);
 
-      if($device[0] =~ m/(.*)=(.*)/) {
+      if( $device[1] && $device[1] =~ m/^FILTER=/ ) {
+        my $devspec = shift(@device);
+        while( @device && $device[0] =~ m/^FILTER=/ ) {
+          $devspec .= ":";
+          $devspec .= shift(@device)
+        }
+        my $regex =  $device[0];
+        foreach my $d (devspec2array($devspec)) {
+          $list{$d} = 1;
+          push @devices, [$d,$regex];
+        }
+
+      } elsif($device[0] =~ m/(.*)=(.*)/) {
         my ($lattr,$re) = ($1, $2);
         foreach my $d (sort keys %defs) {
           next if( IsIgnored($d) );
@@ -105,6 +117,7 @@ readingsGroup_updateDevices($;$)
           $list{$d} = 1;
           push @devices, [$d,$device[1]];
         }
+
       } elsif($device[0] =~ m/(.*)&(.*)/) {
         my ($lattr,$re) = ($1, $2);
         foreach my $d (sort keys %attr) {
@@ -114,11 +127,14 @@ readingsGroup_updateDevices($;$)
           $list{$d} = 1;
           push @devices, [$d,$device[1]];
         }
+
       } elsif($device[0] =~ m/^<.*>$/) {
         push @devices, [$device[0]];
+
       } elsif( defined($defs{$device[0]}) ) {
         $list{$device[0]} = 1;
         push @devices, [@device];
+
       } else {
         foreach my $d (sort keys %defs) {
           next if( IsIgnored($d) );
@@ -144,14 +160,16 @@ readingsGroup_updateDevices($;$)
     my $multi = @list;
     for( my $i = 0; $i <= $#list; ++$i ) {
       my $regex = $list[$i];
-      while ($regex && $regex =~ m/^</ && $regex !~ m/>$/ && defined($list[++$i]) ) {
+      while ($regex
+             && ( ($regex =~ m/^</ && $regex !~ m/>$/)          #handle , in <...>
+                  || ($regex =~ m/@\{/ && $regex !~ m/}$/) )    #handle , in reading@{...}
+             && defined($list[++$i]) ) {
         $regex .= ",". $list[$i];
       }
 
       next if( !$regex );
 
       if( $regex =~ m/^<.*>$/ ) {
-        # handle <{...}@reading>@device
       } elsif( $regex =~ m/(.*)@(.*)/ ) {
         $regex = $1;
 
@@ -481,7 +499,10 @@ readingsGroup_2html($;$)
       my $name = $name;
       my $name2 = $name2;
       my $regex = $list[$i];
-      while ($regex && $regex =~ m/^</ && $regex !~ m/>$/ && defined($list[++$i]) ) {
+      while ($regex
+             && ( ($regex =~ m/^</ && $regex !~ m/>$/)          #handle , in <...>
+                  || ($regex =~ m/@\{/ && $regex !~ m/}$/) )    #handle , in reading@{...}
+             && defined($list[++$i]) ) {
         $regex .= ",". $list[$i];
       }
       my $h = $h;
@@ -712,7 +733,7 @@ readingsGroup_2html($;$)
         next if( !defined($value_format) );
         if(  $value_format =~ m/%/ ) {
           $v = sprintf( $value_format, $v );
-        } elsif( $value_format ) {
+        } elsif( $value_format ne "" ) {
           $v = $value_format;
         }
 
@@ -956,7 +977,10 @@ readingsGroup_Notify($$)
         #foreach my $regex (@list) {
         for( my $i = 0; $i <= $#list; ++$i ) {
         my $regex = $list[$i];
-          while ($regex && $regex =~ m/^</ && $regex !~ m/>$/ && defined($list[++$i]) ) {
+          while ($regex
+                 && ( ($regex =~ m/^</ && $regex !~ m/>$/)          #handle , in <...>
+                      || ($regex =~ m/@\{/ && $regex !~ m/}$/) )    #handle , in reading@{...}
+                 && defined($list[++$i]) ) {
             $regex .= ",". $list[$i];
           }
           next if( $reading eq "state" && !$show_state && (!defined($regex) || $regex ne "state") );
@@ -1015,7 +1039,7 @@ readingsGroup_Notify($$)
               $value = "";
             } elsif( $value_format =~ m/%/ ) {
               $value = sprintf( $value_format, $value );
-            } elsif( $value_format ) {
+            } elsif( $value_format ne "" ) {
               $value = $value_format;
             }
           }
@@ -1209,6 +1233,7 @@ readingsGroup_Attr($$$;$)
       <li>&lt;device&gt; can be of the form ATTRIBUTE&VALUE where ATTRIBUTE is the name of an attribute and VALUE is a regex.</li>
       <li>&lt;device&gt; can be of the form &lt;STRING&gt; or &lt;{perl}&gt; where STRING or the string returned by perl is
           inserted as a line in the readings list. skipped if STRING is undef.</li>
+      <li>&lt;device&gt; can be a devspec (see <a href="#devspec">devspec</a>) with at least one FILTER expression.</li>
       <li>If regex is a comma separatet list the reading values will be shown on a single line.</li>
       <li>If regex starts with a '+' it will be matched against the internal values of the device instead of the readings.</li>
       <li>If regex starts with a '?' it will be matched against the attributes of the device instead of the readings.</li>
