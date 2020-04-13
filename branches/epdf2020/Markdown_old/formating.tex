@@ -1,0 +1,30 @@
+
+\usepackage{amsfonts}
+\usepackage{textcomp}
+\usepackage{sectsty}
+\sectionfont{\clearpage}
+
+\usepackage{enumitem}
+% level one
+\setlist[itemize,1]{label=$\bullet$}
+% level two
+\setlist[itemize,2]{label=$\circ$}
+% level three
+\setlist[itemize,3]{label=$\star$}
+
+\usepackage[a4paper, margin=1in]{geometry}
+
+\renewcommand{\contentsname}{Inhaltsverzeichnis}
+\renewcommand{\figurename}{Abb.}
+\renewcommand{\listfigurename}{Abbildungsverzeichnis}
+\renewcommand{\tablename}{Tabelle}
+
+\usepackage{float}
+\floatstyle{boxed}
+\restylefloat{figure}
+
+\usepackage{adjustbox}
+\usepackage{wrapfig}
+
+
+\renewcommand{\familydefault}{\sfdefault}

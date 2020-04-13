@@ -1,0 +1,52 @@
+/*add classes for image location*/
+img.float-left {display:inline; float:left; margin:5px 15px 5px 0; max-width: 47%;}
+img.float-right {float:right; margin:5px 0 5px 15px; max-width: 47%;}
+img.float-r_small {float:right; margin:5px 0 5px 15px; width=30%;}
+img.aligncenter {display:block; margin:10px auto;}
+img.border {background:#ccc; border:4px solid #f0f0f0; color:#333; padding:1px;}
+
+.rendered_html table, .rendered_html td, .rendered_html th {
+    font-size: 70%;
+}
+
+img[title=halbrechts] {float:right; margin:5px 0 5px 15px; max-width: 47%;}
+img[src*="#thumbnail"] {
+   width:150px;
+   height:100px;
+}
+
+img[src*="#right47"] {
+   margin:5px 0 5px 15px; 
+   max-width: 47%;
+   float:right;
+   border:4px solid #f0f0f0;
+}
+
+
+img[alt$=">"] {
+   max-width: 30%;
+   float: right;
+}
+
+img[alt$="<"] {
+  float: left;
+}
+
+img[alt$="><"] {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: auto;
+  float: none!important;
+}
+
+dd {
+  margin: 0;
+  padding: 0;
+  border: 4px;
+  font-size: 70%;
+  vertical-align: baseline;
+}
+a[src*="#empty"] {
+  color: hotpink;
+}

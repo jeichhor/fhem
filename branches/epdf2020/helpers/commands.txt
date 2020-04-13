@@ -1,0 +1,142 @@
+#############################
+# Aktuelle Befehle
+
+## pdf mit pandoc bauen
+
+pandoc --toc -s -H formating_simple.tex intro.md kap*.md refs_pdf.md metadata.yaml --pdf-engine=xelatex -o pdf2020.pdf -f "markdown+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+pipe_tables+raw_html+emoji+mmd_link_attributes+inline_code_attributes" --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.tex --email-obfuscation=javascript
+
+## Dokumentschutz
+qpdf --object-streams=disable --encrypt "" "mySecretpassworD2" 256 --print=none --modify=none --extract=n -- pdf2020.pdf pdf2020_forum.pdf
+
+## epub erstellen
+
+pandoc --toc -s intro.md kap*.md refs_pdf.md metadata.yaml -f "markdown+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+pipe_tables+raw_html+emoji+mmd_link_attributes+inline_code_attributes" --number-section -V subparagraph --dpi=300 -o epub2020.epub --epub-cover-image=./pics/epdf_Firstlook_demo.png --email-obfuscation=javascript --css=epub.css --top-level-division=chapter
+
+
+
+
+#############################
+# Merkposten
+
+
+
+
+
+pandoc --toc -s -H formating_simple.tex index.md kap*.md metadata.yaml --pdf-engine=xelatex -o pdf2020.pdf -f "markdown+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+pipe_tables+raw_html+emoji+mmd_link_attributes+inline_code_attributes" --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md --email-obfuscation=javascript
+
+inline_code_attributes
+
+pandoc --toc -s --self-contained -t  index.md kap*.md -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+gfm_auto_identifiers" -c pandoc.css metadata.yaml --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md -o pdf2020.pdf
+
+
+pandoc -s -t html5 index.md kap*.md -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart" -c pandoc.css --metadata title="Einsteiger-pdf 2020 [WIP]" -o pdfbody2020.html
+
+pandoc --toc -s -H formating_simple.tex -t html5 index.md kap*.md -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart" -c pandoc.css metadata.yaml --keep-relative-links --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md -o pdf2020.pdf
+
+
+pandoc --toc -s -H formating_simple.tex index.md kap*.md metadata.yaml --pdf-engine=xelatex -o pdf2020.pdf -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart" --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md
+
+
+pandoc -s -t html5 index.md kap*.md -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart" -c pandoc.css --metadata title="" -o pdfbody2020.html
+# Fehler wg. "index" ignorieren
+
+pandoc --toc -s -H formating_simple.tex pdfbody2020.html --pdf-engine=xelatex metadata.yaml --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md -c pandoc.css -o pdf2020.pdf 
+
+
+
+#Dokumentschutz
+qpdf --object-streams=disable --encrypt "mySecretpassworD" "mySecretpassworD2" 256 --print=none --modify=none --extract=n -- pdf2020.pdf ../pdf2020_forum.pdf
+
+qpdf --object-streams=disable --encrypt "{user-password}" "{owner-password}" 256 --print=none --modify=none --extract=n -- {input.pdf} {output.pdf}
+
+
+pandoc --toc -s -H formating_simple.tex --include-before-body=frontpage.md index.md kap*.md metadata.yaml --pdf-engine=xelatex -o ../pdf2020.pdf
+
+## ältere Varianten
+pandoc --toc -H formating.tex -s --include-before-body=frontpage.md index.md kap*.md metadata.yaml --pdf-engine=xelatex -o ../pdf2020.pdf
+
+pandoc --toc -H formating.tex -s --include-before-body=frontpage.md index.md kap*.md metadata.yaml -o ../pdf2020.pdf
+
+
+
+# Infos zu pandoc allg.:
+https://pandoc.org/demos.html
+
+# Aktuelles pandoc von: https://github.com/jgm/pandoc/releases
+
+# Fonts update
+luaotfload-tool --update
+
+
+# Alte commands und Merkposten
+pandoc --toc -H titlesec.tex -c pandoc.css -s --include-before-body=frontpage.md index.md kap*.md metadata.yaml -o ../Test.pdf
+
+
+pandoc docs/*.md  --toc -o test1.pdf 
+
+## mediawiki-Konvertierung:
+pandoc -s -t mediawiki kap03.md --base-header-level=2 -o ../kap03.wiki
+
+# base-header ist alt, neuere pandoc-versionen ggf. --shift-heading-level-by=1
+
+
+https://pandoc.org/demos.html
+https://learnbyexample.github.io/tutorial/ebook-generation/customizing-pandoc/
+
+pandoc --toc -V toc-title:"Inhaltsverzeichnis" --template=template.markdown --include-before-body=frontpage.md kap*.md -o ../Test.pdf
+
+pandoc frontpage.md index.md kap*.md  --toc -o ../test1.pdf
+
+
+
+######################
+## epub erstellen
+
+pandoc --toc -s index.md kap*.md metadata.yaml -f "markdown+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+pipe_tables+raw_html+emoji+mmd_link_attributes+inline_code_attributes" --number-section -V subparagraph --dpi=300 -o epub2020.epub --epub-cover-image=./pics/Firstlook_demo.PNG --email-obfuscation=javascript
+
+#alte Fassung
+pandoc --toc -s --include-before-body=frontpage.md index.md kap*.md metadata.yaml -f "markdown+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart+pipe_tables+raw_html+emoji+mmd_link_attributes+inline_code_attributes" --number-section -V subparagraph --dpi=300 -o epub2020.epub --epub-cover-image=pics/Firstlook_demo.PNG
+
+
+
+
+######
+# Bilder
+# 
+# 
+
+Generelle Info: 
+https://www.xaprb.com/blog/how-to-style-images-with-markdown/
+
+#Klappt nicht:
+<img src = 
+
+# Beispiel für Bild mit wrapfigure
+\begin{wrapfigure}{r}{0.5\textwidth}
+\includegraphics[width=0.9\linewidth]{pics/Firstlook_demo.PNG}
+\label{Abb: Demo-System}
+\end{wrapfigure}
+
+# Klappt auch nicht (die Bild-Referenz wird als Text geschrieben):
+<div style="width:150px; height:100px">
+![commandref - alle Yamaha-Module](pics/commandref_yamaha_all.png)
+</div>
+
+
+# Klappt, aber leider nur mit 
+# sudo apt-get install wkhtmltopdf! und 
+# pandoc --toc -s -H formating_simple.tex -t html5 index.md kap*.md metadata.yaml -o pdf2020.pdf -f "markdown_github+yaml_metadata_block+implicit_figures+table_captions+footnotes+smart" --number-section -V subparagraph --dpi=300 --include-before-body=frontpage.md -c pandoc.css
+
+<img src="pics/ps_ax_mehrere_perl.png" alt="Mehrere Perl" title="Mehrere FHEM-Perl-Instanzen" width="150" height="100" style="float:right; padding:16px"/>
+
+
+#####
+# Tabelle 
+
+#braucht markdown+pipe_tables
+|
+| --- | --- |
+| lajs fjaös f |
+| ---- | --- |
+|jöasdf | jklas df|
+| --- | --- |

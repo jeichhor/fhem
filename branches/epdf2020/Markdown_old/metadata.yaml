@@ -1,0 +1,38 @@
+---
+mainfont: "Go"
+mainfontoptions:
+- Numbers=Lowercase
+- Numbers=Proportional
+
+title:
+- type: main
+  text: Einsteiger-pdf 2020 [WIP]
+- type: subtitle
+  text: Yet another guide for FHEM usage...
+creator:
+- role: author 
+  text: Beta-User@fhem.de
+- role: contributor  
+  text: Schotty - provided a lot of useful tips!
+
+publisher: FHEM e.V.
+rights: (c) 2020 FHEM e.V. 
+date: "2020-04-11"
+subtitle: "Preview Version"
+lang: "de-DE"
+dc:rights: GPL
+
+titlepage: true
+titlepage-color: "FFFFFF"
+titlepage-text-color: "000000"
+titlepage-rule-color: "CCCCCC"
+titlepage-rule-height: 4
+logo: "pics/Firstlook_demo.PNG"
+logo-width: 300
+colorlinks: "default_rgb"
+links-as-notes: false
+lot: false
+lof: false
+listings-disable-line-numbers: true
+
+...
