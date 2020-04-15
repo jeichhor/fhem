@@ -1,0 +1,74 @@
+== Die FHEM Benutzer-Oberfläche (Teil 3)- FHEMWEB basics
+
+=== Raumansichten
+
+==== DeviceOverview anpassen
+tbd.
+
+==== webCmd
+tbd.
+
+==== eventMap
+tbd.
+
+==== icon
+tbd.
+
+==== devStateIcon
+tbd.
+
+==== mehrere Icons
+tbd.
+
+=== Gruppen bilden und umbenennen: group
+tbd.
+
+=== Mehrspaltige Darstellung: column
+tbd.
+
+=== Iconaktualisierung ohne browser-refresh – longpoll
+tbd.
+
+=== Menü ändern
+
+==== hiddenroom
+tbd.
+
+==== Zusätzliche Einträge: menuEntries
+tbd.
+
+==== sortieren: sortRooms
+tbd.
+
+==== roomIcons
+tbd.
+
+==== gegliederte Räume
+tbd.
+
+==== dynamische Räume & show
+tbd.
+
+==== Startseite
+tbd.
+
+=== Grundeinstellungen
+
+==== Welche Icons? stylesheetPrefix und iconPath
+tbd.
+
+=== Weblink
+tbd.
+
+=== Gruppen frei auf dem Bildschirm platzieren: Dashboard
+tbd.
+
+=== ReadingsProxy
+tbd.
+
+=== Zusammenfassungen – readingsGroup
+tbd.
+
+=== Mehrere Bewohner: Zugriffsmöglichkeiten beschränken
+tbd.
+

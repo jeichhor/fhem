@@ -1,0 +1,94 @@
+== Eigene Logiken (Teil I) – mehrere Geräte schalten und "Einzeiler"
+
+
+=== Vorbemerkungen
+
+
+==== Reihenfolgen beachten
+
+* erst Interfaces sauber konfigurieren, dann Clients anlegen lassen
+* erst Geräte fertig konfigurieren, dann Event-Handler bauen
+
+==== Schaltfunktionen konzipieren: direkt oder indirekt (Teil 1)
+
+Allgemeine Vorüberlegungen
+
+=== Mehrere Geräte auf einmal schalten und visualisieren
+tbd.
+
+==== devspec
+tbd.
+
+==== FILTER
+tbd.
+
+==== Strukturierungen auf Modul-Basis
+tbd.
+
+===== structure
+tbd.
+
+===== Bewohner & Co (RESIDENTS)
+tbd.
+
+===== LightScene
+tbd.
+
+=== Weitere Bedingungen auswerten - _if_ & Co.
+tbd.
+
+==== Gerätezustände zur Entscheidungsfindung auswerten
+tbd.
+
+===== Value, ReadingsVal, ReadingsNum, ReadingsAge, ReadingsTimestamp
+tbd.
+
+===== Spezielle Variablen und Operatoren, FILTER, set magic
+tbd.
+
+==== Zeitfragen - Nur nachts, am Wochenende & Co.
+tbd.
+
+===== $we und IsWe()
+tbd.
+
+===== Schalten an bestimmten Wochentagen
+tbd.
+
+===== Verschachteltes at
+tbd.
+
+===== Bedingungen über Attribute: disabledForIntervals, disableAfterTrigger & Co.
+tbd.
+
+===== Tag und Nacht: Sunset, Sunrise und isday
+tbd.
+
+===== Ferien und Urlaub: holiday, holiday2we
+tbd.
+
+===== Calendar
+tbd.
+
+=== trigger und Makros
+tbd.
+
+=== Schau ins log!
+tbd.
+
+=== Eigene Daten in FHEM verfügbar machen
+tbd.
+
+==== userAttr, setreading, Dummy und getKeyValue
+tbd.
+
+==== deletereading
+tbd.
+
+==== setKeyValue
+tbd.
+
+==== %data
+
+(https://wiki.fhem.de/wiki/DevelopmentModuleIntro#Wichtige_globale_Variablen_aus_fhem.pl)
+

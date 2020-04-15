@@ -1,0 +1,28 @@
+== Info, Dokumentation, Hilfe erhalten
+
+=== commandref_modular
+tbd.
+
+=== Zum Umgang mit der FHEM-Community:
+tbd.
+
+==== Wiki: Dokumentationsstruktur
+
+https://wiki.fhem.de/wiki/Dokumentationsstruktur
+
+==== Wie und wo Fragen stellen
+
+(Links zu wichtigen Forumsbeiträgen)
+
+==== RTFM und STFW…
+tbd.
+
+
+=== FHEM startet nicht
+
+(stacktrace)
+
+https://wiki.fhem.de/wiki/FHEM_startet_nicht_-_Tipps_zur_Fehlersuche[FHEM
+startet nicht – eine Anleitung zu Selbsthilfe]
+
+Notfallmaßnahme (!): Die Konfigurationsdatei fhem.cfg editieren
