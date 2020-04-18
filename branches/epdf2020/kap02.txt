@@ -53,8 +53,8 @@ image:https://wiki.fhem.de/w/images/7/7b/Epdf_commandref_yamaha_avr.png[commandr
 … auch auf den ersten Blick nicht ganz einfach, aber immerhin - das scheint einer gewissen Logik zu folgen, und unten gibt es auch ein "Example": `define AV_Receiver YAMAHA_AVR 192.168.0.10`…
 
 Wir stellen fest: +
-*_Dinge, die in der Form _`<...>`_ stehen, müssen durch andere, eigene Angaben ersetzt werden; alles, was in _`[...]`_ steht, kann man auch weglassen, das ist optional._* +
-Also machen wir einen Test und geben oben in das Textfeld neben dem grünen "Plus" mal was ein. Diese Zeile nennen wir übrigens *Kommandozeile", was du dir merken solltest, denn die brauchen wir in FHEM bei der Konfiguration ständig. (Damit ich dir meine IP‘s nicht verraten muß, nehme ich den hostname, den du ggf. anpassen oder durch die IP-Adresse deines FHEM-Servers ersetzen musst): `define Yamaha_Receiver YAMAHA_AVR Wohnzimmer` gefolgt von der Eingabetaste.
+*_Dinge, die in der Form <...> stehen, müssen durch andere, eigene Angaben ersetzt werden; alles, was in [...] steht, kann man auch weglassen, das ist optional._* +
+Also machen wir einen Test und geben oben in das Textfeld neben dem grünen "Plus" mal was ein. Diese Zeile nennen wir übrigens *Kommandozeile*, was du dir merken solltest, denn die brauchen wir in FHEM bei der Konfiguration ständig. (Damit ich dir meine IP‘s nicht verraten muß, nehme ich den hostname, den du ggf. anpassen oder durch die IP-Adresse deines FHEM-Servers ersetzen musst): `define Yamaha_Receiver YAMAHA_AVR Wohnzimmer` gefolgt von der Eingabetaste.
 
 Ok, das sieht schon besser aus:
 
@@ -229,7 +229,13 @@ NOTE: Für die von FHEM intern genutzte Perl-Software gibt es darüber hinaus ei
 
 ==== save
 
+<<<<<<< .mine
+Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsystem" wie auch das geänderte Demosystem parallel zu verwenden…! 
+||||||| .r21697
+Da auch das `save`-Kommando ein paar Optionen kennt, rufen wir wieder vorab die Hilfe auf: `help save` und erfahren dort, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsysstem" wie auch das geänderte Demosystem parallel zu verwenden…!
+=======
 Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsysstem" wie auch das geänderte Demosystem parallel zu verwenden…! 
+>>>>>>> .r21709
 
 Aber jetzt beendest du erstmal FHEM, indem du über die Kommandozeile den Befehl `shutdown` absetzt.
 
