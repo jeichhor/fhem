@@ -229,7 +229,7 @@ NOTE: Für die von FHEM intern genutzte Perl-Software gibt es darüber hinaus ei
 
 ==== save
 
-Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsystem" wie auch das geänderte Demosystem parallel zu verwenden…! 
+Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsystem" als auch das geänderte Demosystem parallel zu verwenden…! 
 
 Aber jetzt beendest du erstmal FHEM, indem du über die Kommandozeile den Befehl `shutdown` absetzt.
 
