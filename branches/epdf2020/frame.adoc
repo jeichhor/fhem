@@ -1,0 +1,27 @@
+= YAA Guide to FHEM
+Author Beta-User
+Version 0.1a 21.04.2020
+:doctype: book
+:encoding: utf-8
+:lang: de
+:toc: left
+:icons:
+:numbered:
+
+include::intro.txt[]
+include::kap01.txt[]
+include::kap02.txt[]
+include::kap03.txt[]
+include::kap04.txt[]
+include::kap05.txt[]
+include::kap06.txt[]
+include::kap07.txt[]
+include::kap08.txt[]
+include::kap09.txt[]
+include::kap10.txt[]
+include::kap11.txt[]
+include::kap12.txt[]
+include::kap13.txt[]
+
+
+

@@ -6,19 +6,19 @@ FHEM-Grundlagen
 Installation
 ~~~~~~~~~~~~
 
-Die Installation hatten wir ja eigentlich vorher schon gemacht: Es gibt entweder irgendwo einen Perl-Interpreter auf deinem Windows-PC, oder du hast ein Linux-System, auf dem die entpackten FHEM-Dateien liegen, oder einen Debian-basierten Server (ohne GUI!), auf den du mit _ssh_ zugreifen kannst, und auf dem du entsprechend des _easy way_ nach https://debian.fhem.de FHEM installiert hast.
+Die Installation hatten wir ja eigentlich vorher schon gemacht: Es gibt entweder irgendwo einen _Perl-Interpreter_ auf deinem Windows-PC, oder du hast ein Linux-System, auf dem die entpackten FHEM-Dateien liegen, oder einen Debian-basierten Server (ohne GUI!), auf den du mit _ssh_ zugreifen kannst, und auf dem du entsprechend des _easy way_ nach https://debian.fhem.de FHEM installiert hast.
 
 === Systemüberblick
 
 Schauen wir uns also FHEM mal gemeinsam an. Da es in einer leeren Installation wenig zu sehen gibt, nehmen wir dafür zunächst einmal die Demoversion.
 
-Um diese zu starten, muss - sofern du FHEM mit dem Debian-Paket installiert hast - FHEM zunächst einmal beendet werden. Dazu tippst du auf der Linux-Konsole `sudo service fhem stop` ein und gibst das Kommando frei, falls du nach einem Passwort gefragt wirst.
+Um diese zu starten, muss - sofern du FHEM mit dem Debian-Paket installiert hast - FHEM zunächst einmal beendet werden. Dazu tippst du auf der Linux-Konsole `sudo systemctl stop fhem` ein und gibst das Kommando frei, falls du nach einem Passwort gefragt wirst.
 
 Dann wechselst du in das Verzeichnis, in dem die Datei _fhem.pl_ liegt. Nach einer Debian-Installation ist das _/opt/fhem_, mit `cd /opt/fhem` kommst du auf der Linux-Konsole direkt dort hin. Dann startest du FHEM mit `perl fhem.pl fhem.cfg.demo`.
 
 Auf einem Windows-PC, bei dem FHEM im Verzeichnis `E:\fhem` liegt und der Perl-Interpreter in einem Unterverzeichnis `E:\fhem\perl\perl\bin\`, kann man - wieder aus dem FHEM-Verzeichnis `E:\fhem` heraus - FHEM so starten: `perl\perl\bin\perl fhem.pl fhem.cfg.demo`
 
-image:https://wiki.fhem.de/w/images/6/63/Epdf_demostart_win.png[FHEM-Start von der Windows-Kommandozeile,title="FHEM-Start Windows-Cmd",scaledwidth=50.0%]
+image:https://wiki.fhem.de/w/images/6/63/Epdf_demostart_win.png[title="FHEM-Start von der Windows-Kommandozeile",200,role="right"]
 
 Auf der Windows-Shell bzw. Linux-Konsole solltest du jetzt einige der oben abgebildeten Textausgaben erhalten, darunter so etwas wie _Server startet with … defined entities_.
 
@@ -116,6 +116,7 @@ NOTE: Die Frage der Zuordnung einzelner Daten zu Internal, Reading und Attribut 
 Die Module benötigen in der Regel für interne Zwecke noch weitere Informationen und Datenstrukturen. Einen Teil dieser Daten macht das _list_-Kommando sichtbar, auf das wir später nochmal zurückkommen werden.
 ****
 
+[[Modul]]
 ===== Modul
 Nachdem wir den Begriff jetzt schon ein paar Mal verwendet haben, etwas mehr Hingergrundinfo dazu, was das eigentlich ist. Ein Modul ist zunächst schlicht eine Datei (manchmal mehrere), die in einem bestimmten Verzeichnis (xxxx: Link auf global einfügen) liegt. Ähnlich wie _fhem.pl_, in die du vorhin vielleicht reingeschaut hast, enthalten die Moduldateien lesbaren Text: Perl-Quellcode. Nun lädt das von dir gestartete Script _fhem.pl_ nicht alle möglichen, in diesen Moduldateien enthaltenen Programmbausteinchen "auf Vorrat" und müllt damit den Hauptspeicher zu, sondern wartet in der Regel (xxxx: Link auf myUtils als Ausnahme einfügen) erst mal damit, bis es angewiesen wird, diesen zusätzlichen Code jeweils zu nutzen. Dir schwahnt: Genau diesen Zweck hat die _define_-Anweisung, die du eben eingetippt hast!
 
