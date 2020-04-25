@@ -18,7 +18,7 @@ Dann wechselst du in das Verzeichnis, in dem die Datei _fhem.pl_ liegt. Nach ein
 
 Auf einem Windows-PC, bei dem FHEM im Verzeichnis `E:\fhem` liegt und der Perl-Interpreter in einem Unterverzeichnis `E:\fhem\perl\perl\bin\`, kann man - wieder aus dem FHEM-Verzeichnis `E:\fhem` heraus - FHEM so starten: `perl\perl\bin\perl fhem.pl fhem.cfg.demo`
 
-image:https://wiki.fhem.de/w/images/6/63/Epdf_demostart_win.png[title="FHEM-Start von der Windows-Kommandozeile",200,role="right"]
+image::https://wiki.fhem.de/w/images/6/63/Epdf_demostart_win.png["FHEM-Start von der Windows-Kommandozeile",align="right",width="50%"]
 
 Auf der Windows-Shell bzw. Linux-Konsole solltest du jetzt einige der oben abgebildeten Textausgaben erhalten, darunter so etwas wie _Server startet with … defined entities_.
 
@@ -34,13 +34,13 @@ Die heutige Haupt-Benutzerschnittstelle für FHEM ist allerdings nicht die Konso
 
 Wir starten also einen Browser und nehmen über die Adresszeile Kontakt mit FHEM auf. Dazu müssen wir die IP-Adresse des FHEM-Servers kennen, diese solltest du für dein System jetzt also erst einmal herausfinden. Wenn du den hostnamen _fhem_server_ vergeben hast, erreichst du FHEM alternativ auch über die Adresse __fhem_server:8083__, für das Windows-Testsystem ginge `__localhost:8083__`.
 
-image:https://wiki.fhem.de/w/images/0/0a/Epdf_Firstlook_demo.png[FHEM -Start mit Demo-Webseite,title="FHEM - Start mit Demo-Webseite",scaledwidth=50.0%]
+image:https://wiki.fhem.de/w/images/0/0a/Epdf_Firstlook_demo.png[FHEM -Start mit Demo-Webseite,title="FHEM - Start mit Demo-Webseite",scaledwidth=50%]
 
 Es sollte die oben abgebildete Webseite zu sehen sein.
 
 ==== Das erste eigene Gerät
 
-Auf der linken Seite haben wir bereits ein paar Einträge. Wollen wir jetzt als erstes versuchen, den Yamaha-Receiver (oder eben das, was du so als passendes Einstiegsgerät gefunden hast) in FHEM einzubinden, so dass er im Menü unter _Cinema_ erreicht werden kann?  
+Auf der linken Seite haben wir bereits ein paar Einträge. Wollen wir jetzt als erstes versuchen, den Yamaha-Receiver (oder eben das, was du so als passendes Einstiegsgerät gefunden hast) in FHEM einzubinden, so dass er im Menü unter _Cinema_ erreicht werden kann?
 
 Einen Knopf für _Hilfe_, _Help_ oder ein Fragezeichen ist nirgends zu sehen, also sehen wir uns den Punkt an, der am ehesten weitere Informationen enthalten könnte: "Commandref". Ein Klick darauf öffnet eine weitere Web-Seite, die ziemlich viel Text enthält – das scheint erst mal nicht so hilfreich zu sein… Na ja, dann schauen wir halt mal, ob da was zu "yamaha" zu finden ist, Strg+f und unser Suchbegriff – da taucht zumindest schon mal was auf:
 
@@ -129,7 +129,7 @@ Eine Anmerkung zu `<Device-Name>` noch: Der ist im Prinzip beliebig, er darf all
 Bis jetzt hatten wir dein Testgerät immer im *_detail_* gesehen – so steht es oben in der Adresszeile des Browsers. Diese Detail- oder _Geräteansicht_ enthält oben noch einen Abschnitt, der mit _DeviceOverview_ betitelt ist. +
 Dieser Abschnitt (ohne die Zeilen, die mit _set_ und _get_ beginnen) stellt dar, wie das Device in der sogenannten Raumansicht dargestellt ist. In diese wechseln wir gleich.
 
-Vorher sollten wir aber noch ein paar Attribute setzen. 
+Vorher sollten wir aber noch ein paar Attribute setzen.
 Zuerst das Attribut _group_: Das wählst du jetzt in dem dropdown-Auswahlfeld aus, ein Klick auf das Textfeld bringt dann wieder ein Auswahldialogfeld, wie wir das von _room_ her kennen. Auch hier kommen zuerst die _group_-Einträge, die FHEM schon kennt und unten ein Freitextfeld, in das man etwas Neues eintragen könnte. Wir wollen den Receiver aber in der Gruppe _AV_ haben, markieren daher diese Auswahl, bestätigen mit OK und klicken zuletzt noch vorne auf _attr_. +
 Dann sollte der Eintrag unten in der Attributliste erscheinen:
 
@@ -151,7 +151,7 @@ Da dies der wesentliche Mechanismus ist, mit dem Devices in FHEM strukturiert we
 NOTE: _webCmd_ ist nur eines von vielen Attributen, mit denen sich das Aussehen und Verhalten von Geräten in FHEMWEB ändern lässt. Eine kleine strukturierte Einführung hierzu ist im Wiki unter https://wiki.fhem.de/wiki/DeviceOverview_anpassen[DeviceOverview anpassen] zu finden, sämtliche verfügbaren grafischen Steuerungselemente in https://wiki.fhem.de/wiki/FHEMWEB/Widgets[FHEMWEB-widgets].
 
 .Für später 3
-NOTE: Was wir mit dem "alias" gemacht haben, wäre als Name ein absolutes _no go_ gewesen: Sonderzeichen sollte man dort – wie auch in Namen für Readings – vermeiden, Leerzeichen und Klammern gehen gar nicht._ + 
+NOTE: Was wir mit dem "alias" gemacht haben, wäre als Name ein absolutes _no go_ gewesen: Sonderzeichen sollte man dort – wie auch in Namen für Readings – vermeiden, Leerzeichen und Klammern gehen gar nicht._ +
 _Ein Tipp: Auch Punkte und andere Zeichen, die in Perl und/oder regex _spezielle Funktionen_ haben, solltest du meiden, selbst wenn sie zulässig sein sollten, und auch den Einsatz von Sonderzeichen sollte man sich gut überlegen.
 Eine Besonderheit hat das _alias_ Attribut allerdings: Man kann damit mehrere Geräte gleich belabeln. Wenn man das in einem Raum macht, ist es vermutlich nicht so toll, aber für eine Sprachsteuerung ist es unter Umständen elegant, wenn die (einzige) Deckenbeleuchtung in jedem Raum jeweils auch so heißt. Für FHEM selbst sind als Steuerungsobjekt allerdings nur die _harten Fakten_ relevant, und das ist der eindeutige Geräte-Name.
 
@@ -162,7 +162,7 @@ Eine Besonderheit hat das _alias_ Attribut allerdings: Man kann damit mehrere Ge
 
 *DAS Kommando* in FHEM kennst du damit ja eigentlich bereits: *_set_* - wir hatten damit oben den Receiver ein- und ausgeschaltet oder die Lautstärke verändert. Nur hatten wir das vor allem über Klicks im Web-Interface erledigt, aber das geht selbstredend genauso über die Kommandozeile, über die du das `define` und die Attribute eingegeben hattest. Genauer gesagt: Wenn du nicht nur eine Fernbedienung haben willst, sondern eine *_Automatisierung_*, verwendest du später in 99,9% der Fälle (indirekt) die Form, die als Kommandozeilen-Eingabe gültig ist (oder noch direktere Formen (xxxx: Link zu Perl-Scripten einfügen betr. CommandSet&Co.)).
 
-Du solltest daher mit dem Receiver (oder dem Shelly) noch ein wenig üben. Du gibst also `set Yamaha_Receiver off`, `set Yamaha_Receiver on` (bzw. dasselbe für den shelly mit dem passenden Namen) oder sowas wie `set Yamaha_Receiver volume 35`, `set Yamaha_Receiver source tuner`, … ein, immer gefolgt von der Eingabetaste. 
+Du solltest daher mit dem Receiver (oder dem Shelly) noch ein wenig üben. Du gibst also `set Yamaha_Receiver off`, `set Yamaha_Receiver on` (bzw. dasselbe für den shelly mit dem passenden Namen) oder sowas wie `set Yamaha_Receiver volume 35`, `set Yamaha_Receiver source tuner`, … ein, immer gefolgt von der Eingabetaste.
 Falls du nicht nur einfach mittels copy&paste vorgegangen bist, ist dir bestimmt aufgefallen, dass manche dieser Kommandos nur drei, andere aber vier _Argumente_ haben: Manche wirken auf das Gerät selbst (sind also eine Art ``Hauptschalter''), andere betreffen nur einen "Nebenaspekt" und nennen diesen daher im Kommando selbst auch ausdrücklich. +
 Du kannst auch die ``Langform'' für den ``Hauptschalter'' verwenden: `set Yamaha_Receiver state off`. In der Regel tut man das nicht, es genügt an der Stelle, wenn du eine erste Idee hast, dass +
 - die kurze Form ``speziell'' ist und - es einen engen Zusammenhang zwischen *_state_* (dem _Reading_) und *_STATE_* (dem _Internal_) gibt. +
@@ -190,7 +190,7 @@ image:https://wiki.fhem.de/w/images/5/5a/Epdf_yamaha_raw.png[RAW-Definition,titl
 
 Du kopierst jetzt die ersten sechs Zeilen und überträgst sie in einen beliebigen Editor – am besten einer, der Linux-konforme Zeilenumbrüche kennt, wie z.B. https://notepad-plus-plus.org/[notepad++].
 
-Die mit setstate beginnenden Zeilen brauchen wir nicht, aber das sind die Zeilen, die in der oben bereits erwähnten *statefile* gespeichert werden. Dir fällt vielleicht auf, dass hier statt des _define_, das du eingegeben hattest, die Schreibweise _defmod_ verwendet wird? Zum Unterschied zwischen beiden kommen wir gleich. Jedenfalls wird das _define_ sowie die Attribute in der Konfigurationsfile (zuerst meistens _fhem.cfg_) gespeichert. 
+Die mit setstate beginnenden Zeilen brauchen wir nicht, aber das sind die Zeilen, die in der oben bereits erwähnten *statefile* gespeichert werden. Dir fällt vielleicht auf, dass hier statt des _define_, das du eingegeben hattest, die Schreibweise _defmod_ verwendet wird? Zum Unterschied zwischen beiden kommen wir gleich. Jedenfalls wird das _define_ sowie die Attribute in der Konfigurationsfile (zuerst meistens _fhem.cfg_) gespeichert.
 
 Apropos speichern: +
 - Bitte speichere die geänderte Demo-Konfiguration _NICHT_ ab – wir werden die Demo-Konfiguration später nochmal etwas intensiver ansehen, und da ist es besser, wir haben dieselbe Ausgangslage. Falls du das doch schon gespeichert hattest: In dem Fall jetzt nicht schlimm, aber ab jetzt bitte erst wieder, wenn es ausdrücklich dasteht und dann genau so wie angegeben! Du kannst das Testgerät später gerne auch wieder löschen und die Demo-Version sauber machen, aber vielleicht erlaubst du mir an der Stelle einen freundlich gemeinten Hinweis: Sehr viele Probleme entstehen daraus, dass Anfänger im FHEM- bzw. Linux-Umfeld nicht die richtige Reihenfolge einhalten, Fehlermeldungen überlesen und generell freizügig in der Interpretation von Anleitungen und Fehlermeldungen sind. Hier war das harmlos, aber wenn es darauf ankommt, kann es sein, dass du am Ende von vorne anfangen mußt, weil du etwas zu viel oder zu wenig gemacht hast. Leider gibt es viele Anleitungen, die nicht (mehr) 1:1 klappen. Dann mußt du bei jedem Schritt überlegen, warum das jeweils so ist: Anleitung einfach schlecht? Oder (teilweise) veraltet? Bloßer Tippfehler (_typo_ genannt) (von dir oder in der Anleitung)? Oft genug findet man weiter unten auf den betreffenden Seiten irgendwo Hinweise, aber wenn es dir dubios vorkommt, solltest du lieber aufhören und jemanden fragen. Zum *richtigen Fragen* kommen wir dann allerdings erst später! +
@@ -214,15 +214,15 @@ Jetzt geht es an’s Eingemachte: Wir ändern über den Link _DEF_ im _Internals
 
 image:https://wiki.fhem.de/w/images/4/4c/Epdf_defmod_FHEMWEB_port.png[Port-Einstellung,title="defmod zur Port-Änderung",scaledwidth=50.0%]
 
-Wenn du kein Freund vom Klicken bist, kannst du das wieder über die Kommandozeile machen: Versuche es erst mit `define WEB 8093 global`, und danach mit `defmod WEB 8093 global` – dann kennst du auch gleich den wesentlichen Unterschied zwischen `define` und `defmod`. 
+Wenn du kein Freund vom Klicken bist, kannst du das wieder über die Kommandozeile machen: Versuche es erst mit `define WEB 8093 global`, und danach mit `defmod WEB 8093 global` – dann kennst du auch gleich den wesentlichen Unterschied zwischen `define` und `defmod`.
 
 ==== update
 
-Damit wir dann gleich mit einem aktuellen FHEM starten können, führen wir jetzt erstmal ein _update_ durch. Gib also `update check` in die Kommandozeile ein, damit du sehen kannst, was sich alles seit Erscheinen des Debian-Pakets getan hat. Das ist einiges - in der Regel kommt da eine recht lange Liste. Da dir das im Moment vermutlich noch nicht allzuviel sagt, führen wir jetzt einfach das Update durch - wenig überraschend durch die Eingabe eines einfachen `update` in die Kommandozeile. Wenn du das zukünftig machst, solltest du dir vor allem ansehen, was als Änderungen in der _CHANGED_-File vermerkt ist - da schreiben die Developer nämlich rein, was sie für _erwähnenswert_ halten. Wir werden darauf später nochmal eingehen. 
+Damit wir dann gleich mit einem aktuellen FHEM starten können, führen wir jetzt erstmal ein _update_ durch. Gib also `update check` in die Kommandozeile ein, damit du sehen kannst, was sich alles seit Erscheinen des Debian-Pakets getan hat. Das ist einiges - in der Regel kommt da eine recht lange Liste. Da dir das im Moment vermutlich noch nicht allzuviel sagt, führen wir jetzt einfach das Update durch - wenig überraschend durch die Eingabe eines einfachen `update` in die Kommandozeile. Wenn du das zukünftig machst, solltest du dir vor allem ansehen, was als Änderungen in der _CHANGED_-File vermerkt ist - da schreiben die Developer nämlich rein, was sie für _erwähnenswert_ halten. Wir werden darauf später nochmal eingehen.
 Ach so: Dass beide Kommandos in die FHEM-Kommandozeile gehören, war klar? Gut, denn das werde ich ab jetzt auch nicht mehr gesondert erwähnen. Das Update selbst geht meist recht schnell - was je nach System etwas länger dauert, ist das Zusammenbauen der _commandref_. Danach bekommst du den Hinweis, dass FHEM neu gestartet werden soll, was wir *noch nicht* machen.
 
 .Für später 1
-NOTE: Falls du dich fragen solltest, was es bringt, ein Testsystem zu aktualisieren - und das auch noch unmittelbar, nachdem das aktuelle Debian-Paket installiert wurde: FHEM wird nicht über die Paketverwaltung (bei Debian: _apt_-irgendwas) aktualisiert, sondern über einen eigenen Mechanismus. Das hat damit zu tun, dass FHEM in Perl geschrieben ist, somit auf vielen anderen Betriebssystemen laufen kann und auch dort Updates zur Verfügung stehen sollen. Zum anderen bestehen recht geringe Abhängigkeiten von bestimmten Versionen anderer Pakete - dies ist bei "echten" Linux-Paketen jedoch häufig der Fall, so dass man dort diese Abhängigkeiten in der Regel über die Paketverwaltung auflöst. Aus diesem Grund wird auch der Pfad zum FHEM-Server durch das Debian-Installationspaket aus der Linux-Paketverwaltung selbst direkt wieder im Rahmen der Installation gelöscht und sollte auch gelöscht bleiben.  
+NOTE: Falls du dich fragen solltest, was es bringt, ein Testsystem zu aktualisieren - und das auch noch unmittelbar, nachdem das aktuelle Debian-Paket installiert wurde: FHEM wird nicht über die Paketverwaltung (bei Debian: _apt_-irgendwas) aktualisiert, sondern über einen eigenen Mechanismus. Das hat damit zu tun, dass FHEM in Perl geschrieben ist, somit auf vielen anderen Betriebssystemen laufen kann und auch dort Updates zur Verfügung stehen sollen. Zum anderen bestehen recht geringe Abhängigkeiten von bestimmten Versionen anderer Pakete - dies ist bei "echten" Linux-Paketen jedoch häufig der Fall, so dass man dort diese Abhängigkeiten in der Regel über die Paketverwaltung auflöst. Aus diesem Grund wird auch der Pfad zum FHEM-Server durch das Debian-Installationspaket aus der Linux-Paketverwaltung selbst direkt wieder im Rahmen der Installation gelöscht und sollte auch gelöscht bleiben.
 Nahezu alle erforderlichen Dateien liegen in der Verzeichnisstruktur unterhalb `/opt/fhem`. Es ist daher völlig gleichgültig, wie sie dahin gelangen, wichtig ist nur, dass sie zum einen für den user __fhem* lesbar sind und zum anderen nach einer Aktualisierung auch wieder neu _geladen_ werden - deswegen fordert einen der update-Prozess am Ende auch auf, FHEM neu zu starten.
 
 .Für später 2
@@ -230,7 +230,7 @@ NOTE: Für die von FHEM intern genutzte Perl-Software gibt es darüber hinaus ei
 
 ==== save
 
-Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsystem" als auch das geänderte Demosystem parallel zu verwenden…! 
+Da auch das `save`-Kommando ein paar Optionen kennt, schauen wir uns das erst mal etwas genauer an. Du könntest jetzt wieder den Eintrag _commandref_ aus dem Menü links aufrufen, aber es gibt eine weitere, direktere Variante (xxxx: Link zu help einfügen), an diese Informationen zu kommen. Versuch's mal mit `help save`. Dort steht, dass wir auch die Möglichkeit haben, einen Speicherort anzugeben, um die aktuelle Konfiguration zu speichern. Aha! Genau diese Variante brauchen wir jetzt nämlich: `save fhemdemo.cfg` - damit haben wir gleich die Möglichkeit, sowohl unser "Echtsystem" als auch das geänderte Demosystem parallel zu verwenden…!
 
 Aber jetzt beendest du erstmal FHEM, indem du über die Kommandozeile den Befehl `shutdown` absetzt.
 
@@ -254,7 +254,7 @@ NOTE: Warum sehen wir auf der zuvor gezeigten Abbildung drei Instanzen? _fhemdem
 Wechsle jetzt in dein „richtiges“ FHEM, indem du im Browser wieder den Port 8083 aufrufst: `fhem_server:8083` +
 Dieses FHEM sieht jetzt allerdings etwas weniger "nett" aus als das Demo-System und begrüßt dich mit einem Hinweis darauf, dass du mit deiner FHEMWEB-Instanz eine nicht besonders gut abgesicherte Serverschnittstelle hast; wir werden später darauf zurückkommen.
 
-Da diese neue FHEM-Installation sehr spartanisch ist, eignet sie sich ganz hervorragend, um z.B. Notreparaturen auszuführen, falls mal etwas schiefgehen sollte. Wie wäre es also jetzt mit einem schnellen `save minimal.cfg`? Dann hast du noch eine weitere, vierte Konfigurationsdatei _minimal.cfg_ im fhem-Verzeichnis liegen, mit der du FHEM starten kannst. 
+Da diese neue FHEM-Installation sehr spartanisch ist, eignet sie sich ganz hervorragend, um z.B. Notreparaturen auszuführen, falls mal etwas schiefgehen sollte. Wie wäre es also jetzt mit einem schnellen `save minimal.cfg`? Dann hast du noch eine weitere, vierte Konfigurationsdatei _minimal.cfg_ im fhem-Verzeichnis liegen, mit der du FHEM starten kannst.
 
 Nun können wir mit einem Klick auf das grüne "Plus" neben der Kommandozeile eine mehrzeilige Variante der _Kommandozeile_ erhalten. Im Unterschied zu dem, was wir bei RAW Definition kennen gelernt haben, ist dieses Dialogfeld aber leer. Funktional sind alle Varianten der Kommandozeile jedoch gleichwertig und bieten vor allem auch eine Syntax-Prüfung des eingegebenen Codes bei der Ausführung an. So lassen sich Tippfehler o.ä. meist gleich bei der Ausführung aus den Dialogfeldern heraus erkennen. Zurück zum Yamaha-Receiver (oder deiner entsprechenden Hardware): Du kannst jetzt die gespeicherte RAW-Definition in das Dialogfeld kopieren und mit _Execute_ direkt zur laufenden Konfiguration hinzufügen. Danach beendest du das Dialogfeld und kannst den Yamaha-Receiver dann direkt steuern - er ist auch hier wiederzufinden, wenn du links auf den Raum _Cinema_ klickst.
 

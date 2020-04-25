@@ -8,20 +8,30 @@ Version 0.1a 21.04.2020
 :icons:
 :numbered:
 
-include::intro.txt[]
-include::kap01.txt[]
-include::kap02.txt[]
-include::kap03.txt[]
-include::kap04.txt[]
-include::kap05.txt[]
-include::kap06.txt[]
-include::kap07.txt[]
-include::kap08.txt[]
-include::kap09.txt[]
-include::kap10.txt[]
-include::kap11.txt[]
-include::kap12.txt[]
-include::kap13.txt[]
+include::intro.adoc[]
 
+include::kap01.adoc[]
 
+include::kap02.adoc[]
 
+include::kap03.adoc[]
+
+include::kap04.adoc[]
+
+include::kap05.adoc[]
+
+include::kap06.adoc[]
+
+include::kap07.adoc[]
+
+include::kap08.adoc[]
+
+include::kap09.adoc[]
+
+include::kap10.adoc[]
+
+include::kap11.adoc[]
+
+include::kap12.adoc[]
+
+include::kap13.adoc[]
