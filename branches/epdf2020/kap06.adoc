@@ -69,6 +69,53 @@ tbd.
 === Zusammenfassungen – readingsGroup
 tbd.
 
-=== Mehrere Bewohner: Zugriffsmöglichkeiten beschränken
-tbd.
+[[mehrere-bewohner--zugriffsmoeglichkeiten-beschraenken]]
+Mehrere Bewohner: Zugriffsmöglichkeiten beschränken
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//Ist ggf. noch auszuformulieren!
 
+1. Definiere eine eigene Instanz dafür:
+`define fhem_inet FHEMWEB 8088 global`
+
+2. Nutze die entsprechenden Attribute bei der FHEMWEB-Instanz, um alles, was nicht benötigt wird auszublenden bzw. den Zugriff zu verbieten: forbiddenroom, hiddengroup/-room(-Regexp), passe ggf. das Menü an.
+
+2. definiere ein passendes allowed Device, erlaube darin erst mal nur den Zugriff aus dem lokalen Netz und teste es aus. Nutze die betreffenden Attribute von allowed, um den Zugriff entsprechend deiner Vorstellungen einzuschränken: allowedCommands, allowedDevices(-Regexp), setze reportAuthAttempts auf den passenden Wert, um v.a. auch Events für fehlgeschlagene Versuche zu erhalten!
+
+=== Exkurs: FHEM über das Internet erreichen
+
+
+==== Vorüberlegungen[Vorüberlegungen]
+Überlege vorab, ob es überhaupt sinnvoll ist, den FHEM-Server aus dem Internet erreichbar zu machen, und was die Aufgaben sein sollen, die über den betreffenden Zugang erfüllt werden sollen.
+Häufig wird es andere Alternativen geben, z.B. Anweisungen oder bestimmte Abfrgaen über einen Messanger-Dienst wie https://wiki.fhem.de/wiki/TelegramBot[Telegram] zu ermöglichen. Beachte aber auch in diesem Fall, dass dieser, wie *jeder* Zugang zu FHEM, ebenfalls adäquat abgsichert werden muß. 
+
+==== vpn
+Was sich hinter diesem Schlagwort verbirgt, sollte der Weg sein, wenn es darum geht, administrative Aufgaben in FHEM zu erledigen, also insbesondere Geräte anzulegen oder zu verändern. Eine Anleitung dafür ist im https://wiki.fhem.de/wiki/VPN-Zugang_f%C3%BCr_FHEM[FHEMWIKI] zu finden.
+Hier werden dich die beim Einrichten erforderlichen Mechanismen in der Regel daran hindern, unbeabsichtigt Sicherheitslöcher zu öffnen.
+
+==== port forwarding
+// Quelle: https://forum.fhem.de/index.php/topic,112735.msg1071195.html#msg1071195
+Praktisch alle von Internet-Providern angebotene Router bieten die Möglichkeit, Geräte hinter der dort eingebauten Firewall über sog. port forwarding zu erreichen, dies ist also auch für FHEM im Prinzip ohne weiteres möglich. *Nicht ohne Grund raten aber alle etwas erfahreneren User ausdrücklich von einem einfachen Portforwarding ab!* 
+
+2. Wenn du trotzdem meinst, es sei sinnvoll und wichtig, dass FHEM aus dem Internet - ohne vpn - erreichbar ist: 
+- Lege den Plan erst mal so lange auf die Seite, bis du wirklich vertraut bist mit FHEM und seiner Konfiguration!
+- Wenn du dann später weiter Bedarf siehst, mache dir eine Liste von den Dingen, die du unbedingt vom Internet aus tun können willst. Bedenke dabei, dass jeder andere, der die Zugangsdaten kennt (oder irgendwie errät oder mit kriminellen Methoden ermittelt), dasselbe tun kann. Wenn es dir also nur darum geht zu sehen, welchen Status manche Geräte haben, dann beschränke den Zugang auch entsprechend! Wenn du nur bestimmte Geräte unbedingt Ein- und Ausschalten können mußt, dann beschränke den Zugang auch entsprechend! Wenn ..., dann beschränke den Zugang auch entsprechend!
+Und wenn FHEM von außen erreichbar ist, sollte der User _fhem_ weder auf dem Server selbst noch auf anderen mit FHEM steuerbaren Systemen _root_-Rechte haben!
+
+Wenn du also immer noch unbedingt meinst, dass es erforderlich ist, dann gibt es zwei Möglichkeiten. Du kannst entweder einen _reverse proxy_ wie https://wiki.fhem.de/wiki/HTTPS-Absicherung_%26_Authentifizierung_via_nginx_Webserver[nginx] oder https://wiki.fhem.de/wiki/Apache_Authentication_Proxy[apache] einsetzen, oder den hier beschriebenen Weg mit FHEM-Bordmitteln wählen. Ein _reverse proxy_ ist insbesondere dann zu empfehlen, wenn auch andere Dienste oder Geräte darüber verfügbar gemacht werden sollen. Aber auch in diesem Fall sollte der Zugriff immer nur auf das beschränkt werden, was wirklich erforderlich ist. 
+
+Mit FHEM-Bordmitteln geht es z.B. so:
+
+5. Schau in das link:#mehrere-bewohner--zugriffsmoeglichkeiten-beschraenken[vorherige Kapitel] und nutze die entsprechenden Attribute bei der _FHEMWEB_-Instanz sowie ein passendes _allowed_-Device, um alles, was nicht benötigt wird auszublenden bzw. den Zugriff zu verbieten: forbiddenroom, hiddengroup/-room(-Regexp), allowedCommands, allowedDevices(-Regexp) und passe ggf. das Menü an. Setze _reportAuthAttempts_ auf den passenden Wert, um v.a. auch Events für fehlgeschlagene Versuche zu erhalten!
+Überlege, ob es sinnvoll ist, ggf. Passwörter zu befristen oder Einmalpasswörter zu verwenden. Hierzu kann z.B.  https://fhem.de/commandref_modular.html#GoogleAuth[GoogleAuth] genutzt  werden (dieses Verfahren kann man z.B. auch ähnlich für TelegramBot verwenden).
+
+6. Aktiviere für diese FHEMWEB-Instanz HTTPS und teste aus, ob das lokal funktioniert (sslCertprefix setzen, dann HTTPS-Attribut, Details siehe cref zu FHEMWEB...)
+
+7. Definiere einen geeigneten Eventhandler, der auf unberechtigte Zugriffe reagiert und deaktiviere mit dessen Hilfe den Zugang, falls z.B. 3 Login-Versuche binnen 10 Minuten fehlgeschlagen sind (sequence könnte dir dabei helfen...). *Teste das aus!*
+
+8. Erst dann (!): erlaube ggf. den Zugriff von beliebigen Adressen.
+
+9. Folge den Anleitungen deines Routerherstellers zur Einrichtung eines dyndns-Diensts und gib den so vorher getesteten und SSL-User/Passwort-geschützten eingeschränkten Port (s.o.: 8088) an deinem Router frei.
+
+10. Teste regelmäßig aus, ob alles noch funktioniert, wie es soll!
+
+11. Ab jetzt sind regelmäßige updates für das Betriebssystem und v.a. die Softwarepakete, die den SSL-Teil betreffen PFLICHT! ("Never change" war noch nie richtig, aber jetzt ist eine faule Ausrede!)

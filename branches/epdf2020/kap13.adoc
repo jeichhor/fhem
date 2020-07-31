@@ -49,6 +49,49 @@ _perlcritic_ ist ein script, um Perl-Programmcode auf Einhaltung der _Perl Best 
 
 Auf den Seiten https://regexr.com/[regexr.com] und https://regex101.com/[regex101.com] kannst du eigene regex-Ausdrücke testen und einiges über die Syntax erfahren.
 
+==== Regex-Optimierung für fhem.pl
+//Quelle: https://forum.fhem.de/index.php/topic,113165.msg1074832.html#msg1074832
+
+Bei vielen notifes/FileLog/DOIF/etc kann man die Event-Verarbeitung innerhalb fhem.pl weiter optimieren, wenn man darauf achtet, dass ein NOTIFYDEV Internal in den Details erscheint. Dazu sollte bei notify/FileLog der Regexp als `NAME, NAME:EVENT.\*` , oder `NAME.*:EVENT.*` formuliert werden. Solche Ausdruecke kann man mit | aneinanderhaengen. 
+
+Um eine in diesem Sinne optimierte Regexp einfacher zu finden, gibt es die `notifyRegexpCheck`. Ein paar Beispiele (die Testinstallation kennt mehrere Geraete die mit s300 anfangen und wz):
+[source,]
+----
+fhem> { notifyRegexpCheck('s300th_og') }
+s300th_og: device s300th_og (OK)
+
+fhem> { notifyRegexpCheck('s300.*T.*') }
+s300.*T.*: no match (ignored)
+
+fhem> { notifyRegexpCheck('s300.*:T.*') }
+s300.*:T.*: devspec s300th_2,s300th_dach,s300th_keller,s300th_kueche,s300th_og (OK)
+
+fhem> { notifyRegexpCheck('s300.*:T.*|wz.*temperature.*') }
+s300.*:T.*: devspec s300th_2,s300th_dach,s300th_keller,s300th_kueche,s300th_og (OK)
+wz.*temperature.*: no match (ignored)
+
+fhem> { notifyRegexpCheck('(s300.*:T|wz:temperature).*') }
+(s300.*:T: devspec s300th_2,s300th_dach,s300th_keller,s300th_kueche,s300th_og (OK)
+wz:temperature).*: device wz (OK)
+
+----
+
+//[quote author=rudolfkoenig link=topic=111938.msg1074222#msg1074222 date=1595609365]
+Mit der neuen Funktion sieht man, wie fhem.pl "denkt":[source,]
+----
+fhem> { notifyRegexpCheck('garten_Regensensor_Heating:state:.(on|off)|garten_Regensensor_Rain:state:.*|garten_Regensensor_Rain:stateNumber:.*') }
+garten_Regensensor_Heating:state:.(on: device garten_Regensensor_Heating (OK)
+off): unknown (ignored)
+garten_Regensensor_Rain:state:\.\*: device garten_Regensensor_Rain (OK)
+garten_Regensensor_Rain:stateNumber:\.\*: device garten_Regensensor_Rain (OK)
+
+----
+
+
+Damit NOTIFYDEV angelegt wird, muss (on|off) entweder samt Device verdoppelt werden, oder als o[nf]+ geschrieben werden, oder...
+NOTIFYDEV ist kein _muss_, es ermoeglich aber fhem.pl, eine Optimierung vorzunehmen.
+
+
 === Zur Serverwahl: Alles Pi oder was?
 
 ==== Meinungsbilder

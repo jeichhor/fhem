@@ -2,7 +2,12 @@
 
 (eher als kommentierte Linkliste)
 
-=== 99_myUtils.pm basics
+
+[99_myUtils-pm-basics]
+99_myUtils.pm basics
+~~~~~~~~~~~~~~~~~~~~
+
+
 tbd.
 
 === Externe Scripte

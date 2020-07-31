@@ -16,8 +16,8 @@ Bedienung.
 Aber erst mal zurück in’s Jahr 2013: Mein Ziel damals war eigentlich nur, elektrische Rollläden zu verbauen, ohne für jeden eine eigene Zeitschaltuhr kaufen zu müssen (und halbjährlich zwischen Sommer- und Winterzeit umzustellen usw.), und ein paar Lichtschalter an Stellen anzubringen, wo dummerweise kein Kabel lag, an das man einen Schalter hätte anschließen können. Dabei war es für mich am wichtigsten, folgende Fragen vorab zu klären:
 
 [arabic]
-. _„Kann ich das mit der Hausautomatisierung? Oder ist das für mich zu schwierig?!?“_ +
-. _„Ist FHEM für mich die passende Lösung, oder soll ich lieber was Anderes nehmen?“_
+. _Kann ich das mit der Hausautomatisierung? Oder ist das für mich zu schwierig?!?_ +
+. _Ist FHEM für mich die passende Lösung, oder soll ich lieber was Anderes nehmen?_
 
 Ich habe das damals für mich entschieden, indem ich erst ausgiebig in _dem pdf_ geblättert und gelesen habe. Danach hatte ich das noch unsichere Gefühl, dass das wohl irgendwie zu schaffen sein wird und habe dann einfach mal mit wenigen Geräten ausprobiert, wie das in der Praxis funktioniert.
  
@@ -67,6 +67,28 @@ Beiden Leserkreisen sei ergänzend dazu die _commandref_ in der _modular_-Varian
 
 Verbesserungsvorschläge nehme ich übrigens auch von _Professionals_ gerne entgegen!
 
+=== Hausautomatisierung - was ist das überhaupt?
+
+Falls du dich noch fragen solltest, um was es denn bei einer _Hausautomatisierung_ eigentlich geht:
+Neben den beiden Beispielen, die mich zu FHEM geführt haben, gibt es einige andere Motive, eine solche Lösung einzusetzen. Manche nutzen FHEM vorwiegend als Informationszentrale ("Wann kommt als nächstes die Müllabfuhr und was hat die Müllentsorgung in diesem Jahr gekostet?", "Wie ist der Pegelstand des nächstgelegenen Flusses?", ...), für die meisten steht jedoch auch etwas allgemeiner gesprochen die *Fernbedienung elektrischer Geräte in ihrem Haushalt* im Vordergrund.
+Dabei werden häufig folgende Ziele verfolgt:
+
+- Energie sparen durch zielgerichtetes Regeln bzw. Ein- und Ausschalten - wobei seit einiger Zeit für Besitzer einer Photovoltaikanlage auch die Frage eine Rolle spielt, wann die _eigene_ elektrische Energie verbraucht werden kann
+- Mehr Komfort durch Fernbedienung und Automatisierungen – zeitgesteuert oder abhängig von Messdaten wie z.B. der Temperatur, Helligkeit, Regen, Bewegung etc.
+- Zugriff auf die Steuerung auch über (W)LAN und das Internet
+- Spaß beim Basteln :-)
+
+Es geht also um Möglichkeiten wie: Wenn ich auf einen Schalter drücke, soll das Licht angehen; die Heizung soll entsprechend der wirklichen Wohnraumnutzung gesteuert werden; bei Sonnenaufgang soll die Gartenwegbeleuchtung ausgehen; der Rollladen soll an Wochentagen um 7 Uhr morgens hochfahren, sofern nicht Wochenende ist und ich nicht in Urlaub bin; die Markise soll bei starkem Wind automatisch eingefahren werden; die Musik soll automatisch eingeschaltet werden wenn ich nach hause komme; die Waschmaschine soll dann starten, wenn das angesagte Gewitter vorbei ist und die PV-Anlage wieder ausreichend Strom liefert; wenn die Haustür für klingelnde Gäste geöffnet wird, soll das Telefonklingeln beendet werden; über (W)LAN in das Heimnetzwerk eingebundene Geräte sollen ebenfalls gesteuert werden. 
+Alle angeschlossenen Geräte sollen auch vom PC, Tablet-PC oder Smartphone aus bedienbar sein - das ganze über eine einheitliche Oberfläche. 
+Das alles (und noch mehr) ist mit FHEM möglich. 
+
+=== Hausautomatisierung mit FHEM - eine Warnung!
+Falls du FHEM vorwiegend dazu einsetzten willst, eine bessere _Fernbedienung_ für alles mögliche zu haben: Schau' dir unbedingt auch andere Lösungen an!
+FHEM ist sehr mächtig, man kann damit im Prinzip jedes _gadget_ irgendwie im Sinne einer Hausautomatisierung nutzbar machen. ABER: FHEM erfordert eine gründliche Einarbeitung, und wenn man nur mal schnell eine ansprechende Oberfläche für gängige IoT-Consumer-Ware sucht, ist man bei anderen weit verbreiteten Lösungen wie https://www.openhab.org/[OpenHAB], https://www.home-assistant.io/[Home Assistant], https://www.iobroker.net/[ioBroker] oder https://www.domoticz.com/[Domoticz] eventuell schneller am Ziel (auch wenn es manchmal Sinn macht, FHEM dann als Interface zur Hardware einzusetzen; für manche User ist dies ein guter Weg, FHEM für sich nutzbar zu machen...).
+
+Wie auch immer: Für viele User - mich eingeschlossen - steht bei FHEM die regelbasierte Steuerung von Gegenständen im Vordergrund, *Automatisierung* eben.
+
+
 === _Zum Verständnis dieses Dokuments_
 
 * Einige Stichworte und Überschriften tauchen mehrfach auf. In der Regel werden zunächst nur Grundzüge erläutert. Diese werden dann wieder aufgegriffen und vertieft, wenn dann auch die anderen erforderlichen Grundlagen genannt sind, die man braucht, um diese weiteren Details einordnen zu können. +
@@ -79,3 +101,7 @@ Verbesserungsvorschläge nehme ich übrigens auch von _Professionals_ gerne entg
 * Der Autor dieser Einleitung ist tatsächlich ein konkreter User. Der nachfolgende Text wurde jedoch zu großen Teilen auch von anderen Usern beigesteuert und verbessert, ebenso sind vielfache Anregungen betreffend Layout und Tools zum Erstellen des Dokuments an sich eingeflossen. Ein herzliches Dankeschön an dieser Stelle für eure konstruktive Mitarbeit! +
 * Das Entwicklungsmodell von FHEM kann am ehesten als https://en.wikipedia.org/wiki/Perpetual_beta[_Perpetual Beta_] bezeichnet werden, die Software ist immer in der Entwicklung. Ein bestimmtes _Release_ ist nur eine Art Schnappschuss zu einer bestimmten Zeit, über den bestenfalls einige Grundeinstellungen für einzelne Module (_defaults_) anders gesetzt werden. Wer FHEM nutzt, hat daher nach meinem Verständnis eine _Beta-Version_ im Einsatz, ist also ebenfalls _Beta-User_. In der _Open-Source_-Welt ist allerdings typischerweise die Beta-Version die stabilste verfügbare Variante einer Software, weil die Entwickler an einem als _stable_ bezeichneten Zweig in der Regel nur noch Bugfixes vornehmen. Diese Bugfixes werden aber in der Regel zuerst über die aktuelle Entwicklerversion ausgetestet, der Fokus der Entwickler in der open-source-Welt liegt eindeutig auf der Verbesserung der jeweiligen Beta-Version…
 
+=== about FHEM ===
+Das Kürzel FHEM steht für *F*reundliche *H*ausautomation und *E*nergie-*M*essung und wird _feem_ ausgesprochen. Der Hauptentwickler von FHEM (oder vielleicht besser: DER Entwickler zentraler Komponenten) ist Rudolf König, der mit unnachahmlicher Geduld das Prinzip der Freundlichkeit auch im Forum allen vorlebt. Ihm gilt ebenfalls mein persönlicher Dank für viele Aha-Erlebnisse auf verschiedensten Gebieten!
+
+Seit 2016 stellt der FHEM e.V. u.a. die Infrastruktur für die Bereitstellung der Software und des Forums bereit. Falls du FHEM also finanziell unterstützen willst: entsprechende Links findest du auf der Webseite.
