@@ -22,10 +22,68 @@ tbd.
 ==== Schimmelvermeidung
 tbd.
 
-=== Jemand zuhause? Anwesenheitserkennung und HomeStatus
-tbd.
+=== Jemand zuhause? 
+Viele Funktionen im Smarthome haben mit einer Anwesenheitserkennung zu tun: Die Alarmanlage soll scharf geschaltet werden, sobald man das Haus verlässt; der Wecker geht nur an, wenn man morgens im Haus ist und das Warmwasser wird nur dann erhitzt, wenn jemand vor Ort weilt. Es gibt viele Wege, eine solche Anwesenheitserkennung in FHEM zu installieren. Der typische Ansatz setzt dabei die Antwort auf folgende Fragen voraus:
+
+* Soll dies automatisiert erfolgen, muß entschieden werden, durch welches Gerät soll die Anwesenheit erkannt werden? Eine weit verbreitete Möglichkeit stellt das Smartphone der Person dar, dessen Daten also verfügbar sein müssen.
+* Wie soll das Gerät erkannt werden? Hier sind mehrere Möglichkeiten denkbar. So kann sich das Gerät beispielsweise durch Bluetooth, Pings, geofancing, WLAN oder ein anderes Protokoll zu erkennen geben. Welches Protokoll man hier wählt, hängt von den Gegebenheiten vor Ort, deren Zuverlässigkeit, der Batterielaufzeit und der vorhandenen Hardware ab.
+* Zuletzt muss man sich klarmachen, wie man die Anwesenheitserkennung und deren Folgen in FHEM sinnvoll umsetzt. Hier bieten sich vorgefertigte Module an, die einfach einzusetzen sind.
+
+Vorab sei angemerkt, dass der „Königsweg“ für dieses Thema nach wie vor nicht gefunden ist. Welcher Weg für deine Umgebung am besten passt, musst du also selbst entscheiden.
+Der eine setzt für für das manuelle Setzen des HomeStatus einen Schalter neben der Eingangstür und eine Fernbedienung neben dem Bett ein, im Folgenden soll näher erläutert werden wie vorzugehen ist, wenn man ein Smartphone verwendet, sich dieses via WLAN ins hauseigene Netz einloggt und diese Erkennung von RESIDENTS verwaltet werden soll. Dann sind mehrere Schritte notwendig. Zuerst müssen wir die Erkennung der Person von der logischen Handhabung in FHEM trennen. Daher ist ein Device anzulegen, welches alle Personen später erfasst und deren Eigenschaften speichern wird
+`define <FreierNameDesDevices> RESIDENTS`
+Alle Personen im Haus werden nun in diesem Device verwaltet. Dabei wird unterschieden zwischen Mitbewohnern (ROMMATE) und Gästen (GUEST). Jede Person wird durch einen entsprechenden Befehl hinzugefügt. Für einen Mitbewohner mit dem Namen Julian ist einzugeben
+`set  <FreierNameDesDevices> addRoommate Julian`
+Nach diesem Befehl legt RESIDENTS automatisch ein weiteres Device für Julian an. Es bekommt einen vorgegebenen Namen, der sich aus dem Vornamen und einem Präfix ableitet: `rr_Julian`.
+
+Wie installiert man nun die Anwesenheitserkennung für Julian, bei der die WLAN-Erkennung ausgenutzt wird? Hier benötigt man Kenntnisse des eigenen WLANs. Wir wollen zwei Möglichkeiten vorstellen: Eine beruht auf einer Netzwerkkonfiguration, bei dem die IP-Adressvergabe von einer Fritzbox verwaltet wird. Die andere Möglichkeit basiert auf einem WLAN, das mit einem Unifi-Controller bereitgestellt wird.
+
+### Anwesenheitserkennung mit Fritzbox
+Da wir die WLAN-Erkennung im nächsten Abschnitt mit Hilfe von Unifi-Geräten beschreiben wollen, nutzen wir in dieser Variante eine andere Funktionalität der Fritzbox. Diese besitzt u.a. eine Funktion, mit der verbundenen Geräten IP-Nummern zugewiesen werden und dies kann man ebenfalls ausnutzen um zu prüfen, ob Julian zu Hause ist.
+
+Hierzu verwendet man das vorhandene Gerät
+`defmod FritzBox FRITZBOX <ip>`
+`attr FritzBox boxUser <user>`
+welches die im Heimnetz vorhandene Fritzbox repräsentiert.  Hierzu muss man wissen, unter welcher IP die Box erreichbar ist und mit welchem Nutzer man die Daten auslesen kann. Zudem ist noch das entsprechende Passwort einzugeben, das von FHEM intern (also nicht im Device, wo, behandeln wir gleich) gespeichert werden wird.
+
+Sind all diese Angaben erfolgt, dann werden in den Readings die mit der Fritzbox verbundenen Geräte und deren MAC-Nummern angezeigt. Wenn Julians iPhone eingeloggt ist, erkennen wir dies beispielsweise an dem Eintrag
+`mac_D0_11_22_33_44_55 iPhone-von-Julian 2020-05-09 17:00:00`
+und wissen damit, dass das iPhone und vermutlich auch Julian vor Ort ist.
+
+Aufbauend auf diesem Reading kann man nun den _ROOMMATE_ _rr_Julian_ steuern. Dazu muss man mitteilen, dass Julian zu Hause ist. Dies geschieht, indem in _RESIDENTS_ der Status von Julian geändert wird
+`set rr_Julian state home/absent`
+(Das Modul erlaubt noch mehr Stati, auf die wir hier nicht eingehen werden.) Ein notify muss nun noch dafür sorgen, dass aus der ausgelesen Verbindung des iPhones von Julian automatisch der Status auf _home_ oder _absent_ gesetzt wird. Dazu müssen wir irgendwo hinterlegen, welche MAC-Adresse zu welchem Bewohner gehört. In der folgenden Lösung werden die Werte-Paare in der uniqueID-File abgespeichert. Für Julian z.B. `{ setKeyValue("mac_D0_11_22_33_44_55","rr_Julian")}`. Dann kann man folgendes _notify_ einsetzen:  
+[source,RAW-Definition]
+----
+defmod rr_xn_MAC_Check notify FritzBox:mac_.*:.* { chop($EVTPART0);;\
+  my $target = getKeyValue($EVTPART0);; \
+  
+  return if !$target;;\
+  $EVTPART1 eq "inactive" \
+    ? fhem("setreading $target state absent")\
+    : fhem("setreading $target state home");;\
+}
+----
+Falls dich interessiert, was das `chop()` tut: Bestimmt findet sich eine Suchmaschine, die auf entsprechende Seiten z.B. bei https://www.perlmonks.org/[Perlmonks] führt...
+
+### Anwesenheitserkennung mit Unifi-Controller
+Wer Unifi-Controller verwendet, kann auf das Gerät Unifi zurückgreifen. Dieses Gerät wird, abhängig von der eigenen Unifi-Installation, wie folgt (minimal) definiert
+`define <DeviceName> Unifi <ip> <port> <username> <password>`
+Hierbei muss man also die IP-Adresse des Controllers, den Nutzernamen für den Zugriff und das Passwort kennen. Die beiden letzten Angaben werden von FHEM verschlüsselt gespeichert (in genau der Datei, von der wir grade gesprochen hatten, und in der auch das Passwort für die Fritzbox gespeichert wird: _uniqueID_). Das Gerät liest in regelmäßigem Rhythmus die mit dem Controller verbundenen Geräte aus und gibt sie in den Readings an. Hat Julian beispielsweise ein iPhone und trägt dies auch seinen Namen, so kann man das iPhone in den Readings erkennen, wenn Julian vor Ort ist
+`iPhone-von-Julian connected 2020-05-09 17:00:00`
+Erkennbar ist, dass Julian am 9. Mai mit dem WLAN verbunden war und damit anwesend sein sollte (wenn der das Handy nicht zu Hause vergessen hat).
+
+Wieder muss jetzt mit einem notify umgesetzt werden, dass die Angaben in _ROOMMATE_ aktualisiert werden. Eine andere Möglichkeit besteht darin, diese Verbindung mit dem Modul https://wiki.fhem.de/wiki/PRESENCE[_PRESENCE_] von FHEM zu arrangieren. Hierzu definiert man sich ein Gerät, das auf das Event vom Controller reagiert und für das Anwesenheits- und Abwesenheitsereignisse definiert werden. Wenn das Unifi-Device den Namen Unifi hat und das iPhone von Julian wie oben ausgelesen wird, verwenden wir die so genannten magic quotes
+`defmod Julian_presence PRESENCE event Unifi:iPhone-von-Julian:.disconnected Unifi:iPhone-von-Julian:.connected`
+Durch die event-Steuerung erkennt FHEM anhand der Readings in Unifi, welches Gerät es beachten muss (nämlich iPhone-von-Julian) und woran es die Abwesenheit (erster Eintrag mit disconnected) oder die Anwesenheit (zweiter Eintrag mit connected) feststellt. Die beiden Einträge sind formal Events in FHEM.
+
+==== PRESENCE
+Im https://wiki.fhem.de/wiki/PRESENCE[Wiki] sind im Abschnitt _PRESENCE_ noch weitere Varianten besprochen. Damit nicht genug der Stichworte:  https://wiki.fhem.de/wiki/GEOFANCY[GEOFANCY] wäre ein weiterer Ansatz, und man kann es innerhalb des Gebäudes noch genauer wissen wollen - https://forum.fhem.de/index.php/topic,98594.msg919493.html#msg919493[homezone] ist allerdings derzeit erst noch in der Entwicklung.
 
 ==== Anwesenheitssimulation
+Um während des eigenen Urlaubs potentiellen Einbrechern vorzugaukeln, dass jemand zuhause sei, lassen sich Geräte in definierbaren Zeiträumen zufällig ein- und ausschalten. Beispiele und die Einrichtung sind beschrieben im Modul https://fhem.de/commandref_modular.html#RandomTimer[RandomTimer].
+
+
 
 * Schaltungen abhängig von Telefonanrufen – Callmonitor
 * Multimedia-Geräte
